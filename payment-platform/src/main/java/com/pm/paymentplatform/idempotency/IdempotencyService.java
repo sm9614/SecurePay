@@ -34,7 +34,9 @@ public class IdempotencyService {
             } catch (DataIntegrityViolationException e) {
                 IdempotencyKey existing = idempotencyKeyRepository
                         .findByIdempotencyKey(request.getIdempotencyKey())
-                        .orElseThrow();
+                        .orElseThrow(() -> new IdempotencyKeyNotFoundException(
+                                "Idempotency key not found " + request.getIdempotencyKey()
+                        ));
 
                 IdempotencyOutcome outcome = existing.getStatus() == IdempotencyStatus.PENDING
                         ? IdempotencyOutcome.DUPLICATE_PENDING

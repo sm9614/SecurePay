@@ -1,0 +1,38 @@
+package com.pm.paymentplatform.exception;
+
+import com.pm.paymentplatform.idempotency.IdempotencyKeyNotFoundException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
+
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+    @ExceptionHandler(IdempotencyKeyNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleIdempotencyKeyNotFound(IdempotencyKeyNotFoundException e) {
+        ErrorResponse errorResponse = new ErrorResponse(e.getMessage(),null, Instant.now());
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErrorResponse> handleValidationErrors(MethodArgumentNotValidException e) {
+        Map<String, String> errors = new HashMap<>();
+
+        e.getBindingResult().getFieldErrors().forEach(
+                error -> errors.put(error.getField(), error.getDefaultMessage()));
+        ErrorResponse errorResponse = new ErrorResponse("Validation failed", errors, Instant.now());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponse> handleUnexpectedError(Exception e) {
+        ErrorResponse errorResponse = new ErrorResponse("Unexpected error occurred", null, Instant.now());
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+    }
+}
