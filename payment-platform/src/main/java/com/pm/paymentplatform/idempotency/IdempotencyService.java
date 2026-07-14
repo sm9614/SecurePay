@@ -15,24 +15,32 @@ public class IdempotencyService {
     }
 
     @Transactional
-    public IdempotencyKeyResponseDTO checkIdempotency(IdempotencyKeyRequestDTO request) {
+    public IdempotencyResult checkIdempotency(IdempotencyKeyRequestDTO request) {
         Optional<IdempotencyKey> idempotencyKey = idempotencyKeyRepository.findByIdempotencyKey(request.getIdempotencyKey());
 
-        if (idempotencyKey.isPresent()) {
-            return IdempotencyKeyMapper.toResponseDTO(idempotencyKey.get());
-        }
+        if (idempotencyKey.isPresent() && idempotencyKey.get().getStatus() == IdempotencyStatus.PENDING) {
+            return new IdempotencyResult(IdempotencyOutcome.DUPLICATE_PENDING, IdempotencyKeyMapper.toResponseDTO(idempotencyKey.get()));
+        } else if (idempotencyKey.isPresent() && idempotencyKey.get().getStatus() == IdempotencyStatus.COMPLETE) {
+            return new IdempotencyResult(IdempotencyOutcome.DUPLICATE_COMPLETE, IdempotencyKeyMapper.toResponseDTO(idempotencyKey.get()));
+        } else {
+            try {
+                IdempotencyKey newIdempotencyKey = new IdempotencyKey();
+                newIdempotencyKey.setStatus(IdempotencyStatus.PENDING);
+                newIdempotencyKey.setOperationType(request.getOperationType());
+                newIdempotencyKey.setIdempotencyKey(request.getIdempotencyKey());
+                idempotencyKeyRepository.saveAndFlush(newIdempotencyKey);
+                return new IdempotencyResult(IdempotencyOutcome.CREATED, IdempotencyKeyMapper.toResponseDTO(newIdempotencyKey));
 
-        try {
-            IdempotencyKey newIdempotencyKey = new IdempotencyKey();
-            newIdempotencyKey.setStatus(IdempotencyStatus.PENDING);
-            newIdempotencyKey.setOperationType(request.getOperationType());
-            newIdempotencyKey.setIdempotencyKey(request.getIdempotencyKey());
-            idempotencyKeyRepository.saveAndFlush(newIdempotencyKey);
-            return IdempotencyKeyMapper.toResponseDTO(newIdempotencyKey);
+            } catch (DataIntegrityViolationException e) {
+                IdempotencyKey existing = idempotencyKeyRepository
+                        .findByIdempotencyKey(request.getIdempotencyKey())
+                        .orElseThrow();
 
-        } catch (DataIntegrityViolationException e) {
-            Optional<IdempotencyKey> newIdempotencyKey = idempotencyKeyRepository.findByIdempotencyKey(request.getIdempotencyKey());
-            return IdempotencyKeyMapper.toResponseDTO(newIdempotencyKey.orElseThrow());
+                IdempotencyOutcome outcome = existing.getStatus() == IdempotencyStatus.PENDING
+                        ? IdempotencyOutcome.DUPLICATE_PENDING
+                        : IdempotencyOutcome.DUPLICATE_COMPLETE;
+                return new IdempotencyResult(outcome, IdempotencyKeyMapper.toResponseDTO(existing));
+            }
         }
     }
 }
