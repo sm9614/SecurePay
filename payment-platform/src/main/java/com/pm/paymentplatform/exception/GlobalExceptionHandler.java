@@ -1,6 +1,7 @@
 package com.pm.paymentplatform.exception;
 
 import com.pm.paymentplatform.idempotency.IdempotencyKeyNotFoundException;
+import com.pm.paymentplatform.paymentintent.InvalidPaymentStateTransitionException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -28,6 +29,12 @@ public class GlobalExceptionHandler {
                 error -> errors.put(error.getField(), error.getDefaultMessage()));
         ErrorResponse errorResponse = new ErrorResponse("Validation failed", errors, Instant.now());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
+    @ExceptionHandler(InvalidPaymentStateTransitionException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidPaymentStateTransition(InvalidPaymentStateTransitionException e) {
+        ErrorResponse errorResponse = new ErrorResponse(e.getMessage(), null, Instant.now());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
     }
 
     @ExceptionHandler(Exception.class)
