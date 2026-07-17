@@ -21,7 +21,7 @@ public class PaymentIntentStateMachine {
 
     public static PaymentIntentStatus transition(PaymentIntentStatus status, PaymentIntentStatus next) {
         if (!isValidTransition(status, next)) {
-            throw new IllegalStateException("Cannot transition from " + status + " to " + next);
+            throw new InvalidPaymentStateTransitionException(status, next);
         }
 
         return next;

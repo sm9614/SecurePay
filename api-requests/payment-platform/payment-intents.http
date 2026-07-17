@@ -1,0 +1,84 @@
+### Variables
+# Adjust host/port if your app runs elsewhere
+@baseUrl = http://localhost:8080
+
+### 1. CREATE — first-time request with a brand new idempotency key
+# Expect: 202 Accepted, a real PaymentIntent body (status = CREATED)
+POST {{baseUrl}}/payment-intents
+Content-Type: application/json
+Idempotency-Key: {{$uuid}}
+
+{
+  "amountMinorUnits": 1999,
+  "currency": "USD"
+}
+
+### 2. DUPLICATE_COMPLETE — replay the exact same request
+# Uses a FIXED idempotency key (not {{$uuid}}) so both runs send the same value.
+# Run this request, then run it again immediately.
+# Expect: same status code + same body (same PaymentIntent id) both times — no new row created.
+POST {{baseUrl}}/payment-intents
+Content-Type: application/json
+Idempotency-Key: fixed-test-key-0001
+
+{
+  "amountMinorUnits": 2500,
+  "currency": "USD"
+}
+
+### 3. Validation failure — missing/invalid amount
+# Expect: 400 Bad Request, ErrorResponse with field-level errors (amountMinorUnits)
+POST {{baseUrl}}/payment-intents
+Content-Type: application/json
+Idempotency-Key: {{$uuid}}
+
+{
+  "amountMinorUnits": 0,
+  "currency": "USD"
+}
+
+### 4. Validation failure — missing currency
+# Expect: 400 Bad Request
+POST {{baseUrl}}/payment-intents
+Content-Type: application/json
+Idempotency-Key: {{$uuid}}
+
+{
+  "amountMinorUnits": 1500
+}
+
+### 5. Missing Idempotency-Key header entirely
+# Expect: 400 Bad Request (Spring's default missing-header handling)
+POST {{baseUrl}}/payment-intents
+Content-Type: application/json
+
+{
+  "amountMinorUnits": 1500,
+  "currency": "USD"
+}
+
+### 6. Different currency — JPY (zero minor units, just to sanity check Currency converter)
+# Expect: 202 Accepted
+POST {{baseUrl}}/payment-intents
+Content-Type: application/json
+Idempotency-Key: {{$uuid}}
+
+{
+  "amountMinorUnits": 500,
+  "currency": "JPY"
+}
+
+### 7. DUPLICATE_PENDING (manual/concurrency test)
+# Hard to trigger with a single sequential client — this endpoint responds fast.
+# To actually see 409 here, you'd need two near-simultaneous requests with the same
+# NEW key (e.g. fire this twice back-to-back very quickly, or use a tool that sends
+# concurrent requests). Left here as a placeholder — revisit once you have a way
+# to fire true concurrent requests (e.g. a small script, or Milestone 3 locking tests).
+POST {{baseUrl}}/payment-intents
+Content-Type: application/json
+Idempotency-Key: concurrency-test-key-0001
+
+{
+  "amountMinorUnits": 3000,
+  "currency": "USD"
+}

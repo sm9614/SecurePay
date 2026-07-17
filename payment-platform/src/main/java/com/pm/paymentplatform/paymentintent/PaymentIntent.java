@@ -8,6 +8,7 @@ import java.util.Currency;
 import java.util.UUID;
 
 @Entity
+@Table(name = "payment_intents")
 public class PaymentIntent {
 
     @Id
@@ -32,7 +33,7 @@ public class PaymentIntent {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
-    @Column(name = "updated_at", nullable = false, updatable = true)
+    @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
     @PrePersist

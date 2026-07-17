@@ -1,5 +1,5 @@
 package com.pm.paymentplatform.idempotency;
 
-public record IdempotencyResult(IdempotencyOutcome outcome, IdempotencyKeyResponseDTO body) {
+public record IdempotencyResult(IdempotencyOutcome outcome, IdempotencyKeyResponseDTO body, IdempotencyKey entity) {
 
 }

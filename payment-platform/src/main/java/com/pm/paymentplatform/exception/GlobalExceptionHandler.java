@@ -1,10 +1,12 @@
 package com.pm.paymentplatform.exception;
 
+import com.pm.paymentplatform.idempotency.DuplicateIdempotencyKeyPendingException;
 import com.pm.paymentplatform.idempotency.IdempotencyKeyNotFoundException;
 import com.pm.paymentplatform.paymentintent.InvalidPaymentStateTransitionException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -35,6 +37,18 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleInvalidPaymentStateTransition(InvalidPaymentStateTransitionException e) {
         ErrorResponse errorResponse = new ErrorResponse(e.getMessage(), null, Instant.now());
         return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+    }
+
+    @ExceptionHandler(DuplicateIdempotencyKeyPendingException.class)
+    public ResponseEntity<ErrorResponse> handleDuplicateIdempotencyKeyPending(DuplicateIdempotencyKeyPendingException e) {
+        ErrorResponse errorResponse = new ErrorResponse(e.getMessage(), null,Instant.now());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+    }
+
+    @ExceptionHandler(MissingRequestHeaderException.class)
+    public ResponseEntity<ErrorResponse> handleMissingRequestHeader(MissingRequestHeaderException e) {
+        ErrorResponse errorResponse = new ErrorResponse(e.getMessage(), null, Instant.now());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
     }
 
     @ExceptionHandler(Exception.class)

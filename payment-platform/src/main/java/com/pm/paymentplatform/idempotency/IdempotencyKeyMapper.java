@@ -2,14 +2,16 @@ package com.pm.paymentplatform.idempotency;
 
 public class IdempotencyKeyMapper {
     public static IdempotencyKeyResponseDTO toResponseDTO(IdempotencyKey entity) {
-        IdempotencyKeyResponseDTO idempotencyKeyResponseDTO = new IdempotencyKeyResponseDTO();
-        idempotencyKeyResponseDTO.setId(entity.getId());
-        idempotencyKeyResponseDTO.setIdempotencyKey(entity.getIdempotencyKey());
-        idempotencyKeyResponseDTO.setOperationType(entity.getOperationType());
-        idempotencyKeyResponseDTO.setStatus(entity.getStatus());
-        idempotencyKeyResponseDTO.setResponseStatus(entity.getResponseStatus());
-        idempotencyKeyResponseDTO.setResponseBody(entity.getResponseBody());
-        idempotencyKeyResponseDTO.setCreatedAt(entity.getCreatedAt());
-        return idempotencyKeyResponseDTO;
+
+        IdempotencyKeyResponseDTO response = new IdempotencyKeyResponseDTO();
+        response.setId(entity.getId());
+        response.setIdempotencyKey(entity.getIdempotencyKey());
+        response.setOperationType(entity.getOperationType());
+        response.setStatus(entity.getStatus());
+        response.setResponseStatus(entity.getResponseStatus());
+        response.setResponseBody(entity.getResponseBody());
+        response.setCreatedAt(entity.getCreatedAt());
+
+        return response;
     }
 }
