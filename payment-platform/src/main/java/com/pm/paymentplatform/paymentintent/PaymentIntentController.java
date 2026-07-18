@@ -1,11 +1,16 @@
 package com.pm.paymentplatform.paymentintent;
 
 import com.pm.paymentplatform.idempotency.*;
+import com.pm.paymentplatform.ledger.LedgerService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import tools.jackson.databind.ObjectMapper;
+
+import java.time.Instant;
+import java.util.Optional;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/payment-intents")
@@ -14,13 +19,19 @@ public class PaymentIntentController {
     private final IdempotencyKeyService idempotencyKeyService;
     private final PaymentIntentService paymentIntentService;
     private final ObjectMapper objectMapper;
+    private final PaymentIntentRepository paymentIntentRepository;
+    private final LedgerService ledgerService;
 
     public PaymentIntentController(IdempotencyKeyService idempotencyKeyService,
                                    PaymentIntentService paymentIntentService,
-                                   ObjectMapper objectMapper) {
+                                   ObjectMapper objectMapper,
+                                   PaymentIntentRepository paymentIntentRepository,
+                                   LedgerService ledgerService) {
         this.idempotencyKeyService = idempotencyKeyService;
         this.paymentIntentService = paymentIntentService;
         this.objectMapper = objectMapper;
+        this.paymentIntentRepository = paymentIntentRepository;
+        this.ledgerService = ledgerService;
     }
 
     @PostMapping
@@ -48,5 +59,13 @@ public class PaymentIntentController {
             idempotencyKeyService.completeIdempotencyKey(idempotencyResult.entity(), HttpStatus.ACCEPTED.value(), body);
             return ResponseEntity.status(HttpStatus.ACCEPTED).body(paymentIntentResponse);
         }
+    }
+
+    @PostMapping("/{id}/process")
+    public ResponseEntity<PaymentIntentResponseDTO> processPayment(@PathVariable String id) {
+        PaymentIntent paymentIntent = paymentIntentService.processPaymentIntent(UUID.fromString(id));
+        ledgerService.recordDoubleEntry(paymentIntent);
+        PaymentIntentResponseDTO response = paymentIntentService.completePaymentIntent(paymentIntent);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 }

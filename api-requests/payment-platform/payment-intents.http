@@ -82,3 +82,21 @@ Idempotency-Key: concurrency-test-key-0001
   "amountMinorUnits": 3000,
   "currency": "USD"
 }
+
+### 8. PROCESS — transition a payment intent from CREATED to SUCCEEDED
+# Replace the id below with a real id from a prior CREATE response (must currently be CREATED).
+# Expect: 200 OK, PaymentIntent body with status = SUCCEEDED.
+# Side effects to verify in the DB: payment_intents row updated to SUCCEEDED,
+# and exactly two new ledger_entries rows (one DEBIT, one CREDIT) sharing the
+# same transaction_id, same amount_minor_units, same currency.
+POST {{baseUrl}}/payment-intents/2dc3abc3-6119-4c77-a9cc-6422bef35ae9/process
+
+### 9. PROCESS — invalid transition (double-process the same id)
+# Run request 8 again immediately using the SAME id.
+# Expect: 409 Conflict — SUCCEEDED has no outgoing transitions in the state machine,
+# so this should throw InvalidPaymentStateTransitionException.
+POST {{baseUrl}}/payment-intents/2dc3abc3-6119-4c77-a9cc-6422bef35ae9/process
+
+### 10. PROCESS — nonexistent id
+# Expect: 404 Not Found, ErrorResponse from PaymentIntentNotFoundException.
+POST {{baseUrl}}/payment-intents/00000000-0000-0000-0000-000000000000/process
