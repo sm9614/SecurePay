@@ -1,5 +1,7 @@
 package com.pm.paymentplatform.paymentintent;
 
+import com.pm.paymentplatform.statemachine.InvalidStateTransitionException;
+
 import java.util.Map;
 import java.util.Set;
 
@@ -21,7 +23,7 @@ public class PaymentIntentStateMachine {
 
     public static PaymentIntentStatus transition(PaymentIntentStatus status, PaymentIntentStatus next) {
         if (!isValidTransition(status, next)) {
-            throw new InvalidPaymentStateTransitionException(status, next);
+            throw new InvalidStateTransitionException(status, next);
         }
 
         return next;

@@ -1,43 +1,45 @@
-package com.pm.paymentplatform.ledger;
+package com.pm.paymentplatform.refund;
 
 import com.pm.paymentplatform.paymentintent.PaymentIntent;
 import jakarta.persistence.*;
 
 import java.time.Instant;
-import java.util.Currency;
 import java.util.UUID;
 
 @Entity
-@Table(name = "ledger_entries")
-public class LedgerEntry {
+@Table(name = "refunds")
+public class Refund {
 
     @Id
     @GeneratedValue
     private UUID id;
 
-    @Column(name = "transaction_id", nullable = false)
-    private UUID transactionId;
-
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "payment_intent_id", nullable = false)
+    @JoinColumn(name = "payment_intent_id" ,nullable = false)
     private PaymentIntent paymentIntent;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "entry_type", nullable = false)
-    private EntryType entryType;
 
     @Column(name = "amount_minor_units", nullable = false)
     private Long amountMinorUnits;
 
-    @Column(name = "currency", nullable = false)
-    private Currency currency;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private RefundStatus status;
 
-    @Column(name = "created_at", nullable = false)
+    @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
+
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
 
     @PrePersist
     protected void onCreate() {
         this.createdAt = Instant.now();
+        this.updatedAt = Instant.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = Instant.now();
     }
 
     public UUID getId() {
@@ -48,28 +50,12 @@ public class LedgerEntry {
         this.id = id;
     }
 
-    public UUID getTransactionId() {
-        return transactionId;
-    }
-
-    public void setTransactionId(UUID transactionId) {
-        this.transactionId = transactionId;
-    }
-
     public PaymentIntent getPaymentIntent() {
         return paymentIntent;
     }
 
     public void setPaymentIntent(PaymentIntent paymentIntent) {
         this.paymentIntent = paymentIntent;
-    }
-
-    public EntryType getEntryType() {
-        return entryType;
-    }
-
-    public void setEntryType(EntryType entryType) {
-        this.entryType = entryType;
     }
 
     public Long getAmountMinorUnits() {
@@ -80,16 +66,21 @@ public class LedgerEntry {
         this.amountMinorUnits = amountMinorUnits;
     }
 
-    public Currency getCurrency() {
-        return currency;
+    public RefundStatus getStatus() {
+        return status;
     }
 
-    public void setCurrency(Currency currency) {
-        this.currency = currency;
+    public void setStatus(RefundStatus status) {
+        this.status = status;
     }
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
     }
 
 }

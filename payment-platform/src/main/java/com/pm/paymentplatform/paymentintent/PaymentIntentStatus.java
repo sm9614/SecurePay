@@ -1,6 +1,8 @@
 package com.pm.paymentplatform.paymentintent;
 
-public enum PaymentIntentStatus {
+import com.pm.paymentplatform.statemachine.Status;
+
+public enum PaymentIntentStatus implements Status {
     CREATED,
     PROCESSING,
     FAILED,

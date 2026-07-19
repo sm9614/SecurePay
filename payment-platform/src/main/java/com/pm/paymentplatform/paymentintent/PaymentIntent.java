@@ -23,7 +23,7 @@ public class PaymentIntent {
     private Currency currency;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(nullable = false)
+    @JoinColumn(name = "idempotency_key_id", nullable = false)
     private IdempotencyKey idempotencyKey;
 
     @Enumerated(EnumType.STRING)
