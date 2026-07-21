@@ -2,6 +2,7 @@ package com.pm.paymentplatform.exception;
 
 import com.pm.paymentplatform.idempotency.DuplicateIdempotencyKeyPendingException;
 import com.pm.paymentplatform.idempotency.IdempotencyKeyNotFoundException;
+import com.pm.paymentplatform.refund.RefundExceedsAvailableBalanceException;
 import com.pm.paymentplatform.statemachine.InvalidStateTransitionException;
 import com.pm.paymentplatform.paymentintent.PaymentIntentNotFoundException;
 import org.springframework.http.HttpStatus;
@@ -56,6 +57,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handlePaymentIntentNotFound(PaymentIntentNotFoundException e) {
         ErrorResponse errorResponse = new ErrorResponse(e.getMessage(), null, Instant.now());
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+    }
+
+    @ExceptionHandler(RefundExceedsAvailableBalanceException.class)
+    public ResponseEntity<ErrorResponse> handleRefundExceedsAvailableBalance(RefundExceedsAvailableBalanceException e) {
+        ErrorResponse errorResponse = new ErrorResponse(e.getMessage(), null, Instant.now());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
     }
 
     @ExceptionHandler(Exception.class)

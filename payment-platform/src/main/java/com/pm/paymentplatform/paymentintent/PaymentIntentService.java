@@ -28,19 +28,16 @@ public class PaymentIntentService {
     }
 
     public PaymentIntent processPaymentIntent(UUID id) {
-        Optional<PaymentIntent> paymentIntent = paymentIntentRepository.getPaymentIntentById(id);
+        PaymentIntent paymentIntent = paymentIntentRepository.getPaymentIntentById(id)
+                .orElseThrow(() -> new PaymentIntentNotFoundException(id));
 
-        if (paymentIntent.isEmpty()) {
-            throw new PaymentIntentNotFoundException(id);
-        }
-
-        paymentIntent.get().setStatus(PaymentIntentStateMachine.transition(
-                        paymentIntent.get().getStatus(),
+        paymentIntent.setStatus(PaymentIntentStateMachine.transition(
+                        paymentIntent.getStatus(),
                         PaymentIntentStatus.PROCESSING));
 
-        paymentIntentRepository.save(paymentIntent.get());
+        paymentIntentRepository.save(paymentIntent);
 
-        return paymentIntent.get();
+        return paymentIntent;
     }
 
     public PaymentIntentResponseDTO completePaymentIntent(PaymentIntent paymentIntent) {
