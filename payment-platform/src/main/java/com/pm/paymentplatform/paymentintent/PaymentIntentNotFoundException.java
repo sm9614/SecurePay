@@ -6,7 +6,7 @@ public class PaymentIntentNotFoundException extends RuntimeException {
     private final UUID id;
 
     public PaymentIntentNotFoundException(UUID id) {
-        super("Payment with ID: " + id + "not found");
+        super("Payment with ID: " + id + " not found");
         this.id = id;
     }
 

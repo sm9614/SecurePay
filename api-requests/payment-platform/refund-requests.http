@@ -1,0 +1,65 @@
+### Variables (reuse from payment-intents.http if already defined there)
+@baseUrl = http://localhost:8080
+@paymentIntentId = f8bee764-15f9-4b70-b39b-842fc1aa3f24
+
+### 1. Create a refund (happy path)
+POST {{baseUrl}}/payment-intents/{{paymentIntentId}}/refunds
+Content-Type: application/json
+Idempotency-Key: refund-key-001
+
+{
+  "amountMinorUnits": 500
+}
+
+### 2. Replay the same request (same Idempotency-Key) — should return identical response, no new row
+POST {{baseUrl}}/payment-intents/{{paymentIntentId}}/refunds
+Content-Type: application/json
+Idempotency-Key: refund-key-001
+
+{
+  "amountMinorUnits": 500
+}
+
+### 3. Second partial refund with a NEW idempotency key — should succeed if within remaining balance
+POST {{baseUrl}}/payment-intents/{{paymentIntentId}}/refunds
+Content-Type: application/json
+Idempotency-Key: refund-key-002
+
+{
+  "amountMinorUnits": 400
+}
+
+### 4. Over-balance refund — should return 409 with remainingBalance + requestAmount populated
+POST {{baseUrl}}/payment-intents/{{paymentIntentId}}/refunds
+Content-Type: application/json
+Idempotency-Key: refund-key-003
+
+{
+  "amountMinorUnits": 999999
+}
+
+### 5. Missing Idempotency-Key header — should return 400 (MissingRequestHeaderException)
+POST {{baseUrl}}/payment-intents/{{paymentIntentId}}/refunds
+Content-Type: application/json
+
+{
+  "amountMinorUnits": 1000
+}
+
+### 6. Invalid amount (fails @Min(1) / @NotNull validation) — should return 400
+POST {{baseUrl}}/payment-intents/{{paymentIntentId}}/refunds
+Content-Type: application/json
+Idempotency-Key: refund-key-004
+
+{
+  "amountMinorUnits": -5
+}
+
+### 7. Nonexistent payment intent — should return 500 via PaymentIntentNotFoundException (or whatever status you've mapped it to)
+POST {{baseUrl}}/payment-intents/00000000-0000-0000-0000-000000000000/refunds
+Content-Type: application/json
+Idempotency-Key: refund-key-005
+
+{
+  "amountMinorUnits": 1000
+}

@@ -53,7 +53,6 @@ public class PaymentIntentController {
             throw new DuplicateIdempotencyKeyPendingException("A request with this idempotency key is already in progress");
 
         }else {
-
             PaymentIntentResponseDTO paymentIntentResponse = paymentIntentService.createPaymentIntent(request.getAmountMinorUnits(), request.getCurrency(), idempotencyResult.entity());
             String body = objectMapper.writeValueAsString(paymentIntentResponse);
             idempotencyKeyService.completeIdempotencyKey(idempotencyResult.entity(), HttpStatus.ACCEPTED.value(), body);
