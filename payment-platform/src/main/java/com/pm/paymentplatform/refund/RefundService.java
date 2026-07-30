@@ -3,6 +3,8 @@ package com.pm.paymentplatform.refund;
 import com.pm.paymentplatform.paymentintent.PaymentIntent;
 import com.pm.paymentplatform.paymentintent.PaymentIntentNotFoundException;
 import com.pm.paymentplatform.paymentintent.PaymentIntentRepository;
+import com.pm.paymentplatform.paymentintent.PaymentIntentStatus;
+import com.pm.paymentplatform.statemachine.InvalidStateTransitionException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +25,10 @@ public class RefundService {
     public RefundResponseDTO createRefund(UUID paymentIntentId, RefundRequestDTO request) {
         PaymentIntent paymentIntent = paymentIntentRepository.getPaymentIntentByIdWithLock(paymentIntentId)
                 .orElseThrow(() -> new PaymentIntentNotFoundException(paymentIntentId));
+
+        if (paymentIntent.getStatus() != PaymentIntentStatus.SUCCEEDED) {
+            throw new PaymentIntentNotRefundableException(paymentIntent.getStatus());
+        }
 
         Long remainingBalance = paymentIntent.getAmountMinorUnits() - refundRepository.sumReservedAmountByPaymentIntentId(paymentIntentId);
 
