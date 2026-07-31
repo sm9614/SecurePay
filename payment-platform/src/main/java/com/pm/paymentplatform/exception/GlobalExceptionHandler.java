@@ -2,6 +2,7 @@ package com.pm.paymentplatform.exception;
 
 import com.pm.paymentplatform.idempotency.DuplicateIdempotencyKeyPendingException;
 import com.pm.paymentplatform.idempotency.IdempotencyKeyNotFoundException;
+import com.pm.paymentplatform.merchant.EmailAlreadyRegisteredException;
 import com.pm.paymentplatform.refund.PaymentIntentNotRefundableException;
 import com.pm.paymentplatform.refund.RefundExceedsAvailableBalanceException;
 import com.pm.paymentplatform.statemachine.InvalidStateTransitionException;
@@ -68,6 +69,12 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(PaymentIntentNotRefundableException.class)
     public ResponseEntity<ErrorResponse> handlePaymentIntentNotRefundable(PaymentIntentNotRefundableException e) {
+        ErrorResponse errorResponse = new ErrorResponse(e.getMessage(), null, Instant.now());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+    }
+
+    @ExceptionHandler(EmailAlreadyRegisteredException.class)
+    public ResponseEntity<ErrorResponse> handleEmailAlreadyRegistered(EmailAlreadyRegisteredException e) {
         ErrorResponse errorResponse = new ErrorResponse(e.getMessage(), null, Instant.now());
         return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
     }
