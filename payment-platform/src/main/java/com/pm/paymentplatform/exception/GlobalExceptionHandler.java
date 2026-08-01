@@ -5,6 +5,7 @@ import com.pm.paymentplatform.idempotency.IdempotencyKeyNotFoundException;
 import com.pm.paymentplatform.merchant.EmailAlreadyRegisteredException;
 import com.pm.paymentplatform.refund.PaymentIntentNotRefundableException;
 import com.pm.paymentplatform.refund.RefundExceedsAvailableBalanceException;
+import com.pm.paymentplatform.security.InvalidCredentialsException;
 import com.pm.paymentplatform.statemachine.InvalidStateTransitionException;
 import com.pm.paymentplatform.paymentintent.PaymentIntentNotFoundException;
 import org.springframework.http.HttpStatus;
@@ -77,6 +78,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleEmailAlreadyRegistered(EmailAlreadyRegisteredException e) {
         ErrorResponse errorResponse = new ErrorResponse(e.getMessage(), null, Instant.now());
         return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+    }
+
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidCredentials(InvalidCredentialsException e) {
+        ErrorResponse errorResponse = new ErrorResponse(e.getMessage(), null, Instant.now());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
     }
 
     @ExceptionHandler(Exception.class)

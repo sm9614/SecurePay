@@ -1,0 +1,81 @@
+### Register a new merchant - success
+POST http://localhost:8080/merchants/register
+Content-Type: application/json
+
+{
+  "email": "soban{{$uuid}}@example.com",
+  "password": "SecurePass123!"
+}
+
+### Register - missing email (expect 400)
+POST http://localhost:8080/merchants/register
+Content-Type: application/json
+
+{
+  "password": "SecurePass123!"
+}
+
+### Register - invalid email format (expect 400)
+POST http://localhost:8080/merchants/register
+Content-Type: application/json
+
+{
+  "email": "not-an-email",
+  "password": "SecurePass123!"
+}
+
+### Register - password too short (expect 400)
+POST http://localhost:8080/merchants/register
+Content-Type: application/json
+
+{
+  "email": "shortpass{{$uuid}}@example.com",
+  "password": "abc"
+}
+
+### Register - duplicate email (run the "success" request above first with a FIXED email, then repeat this exact request twice)
+POST http://localhost:8080/merchants/register
+Content-Type: application/json
+
+{
+  "email": "duplicate-test@example.com",
+  "password": "SecurePass123!"
+}
+
+### ^ Run the request above TWICE in a row - second call should return 409 EmailAlreadyRegistered
+
+
+### Login - success (use the fixed email/password you just registered above)
+POST http://localhost:8080/auth/login
+Content-Type: application/json
+
+{
+  "email": "duplicate-test@example.com",
+  "password": "SecurePass123!"
+}
+
+### Login - wrong password (expect 401, generic message)
+POST http://localhost:8080/auth/login
+Content-Type: application/json
+
+{
+  "email": "duplicate-test@example.com",
+  "password": "WrongPassword!"
+}
+
+### Login - nonexistent email (expect 401, SAME generic message as wrong password)
+POST http://localhost:8080/auth/login
+Content-Type: application/json
+
+{
+  "email": "doesnotexist@example.com",
+  "password": "SecurePass123!"
+}
+
+### Login - missing password field (expect 400, @NotNull on LoginRequestDTO)
+POST http://localhost:8080/auth/login
+Content-Type: application/json
+
+{
+  "email": "duplicate-test@example.com"
+}

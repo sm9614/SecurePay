@@ -1,17 +1,13 @@
-package com.pm.paymentplatform.merchant;
+package com.pm.paymentplatform.security;
 
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 
-public class MerchantRegistrationRequestDTO {
+public class LoginRequestDTO {
 
-    @Email
     @NotNull
     private String email;
 
     @NotNull
-    @Size(min = 8, max = 72)
     private String password;
 
     public String getEmail() {
@@ -29,5 +25,4 @@ public class MerchantRegistrationRequestDTO {
     public void setPassword(String password) {
         this.password = password;
     }
-
 }
