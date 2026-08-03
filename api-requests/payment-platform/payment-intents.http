@@ -3,11 +3,25 @@
 @baseUrl = http://localhost:8080
 @paymentIntentId = f8bee764-15f9-4b70-b39b-842fc1aa3f24
 
+### 0. Login to get token (run this first, or whenever token expires)
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "duplicate-test@example.com",
+  "password": "SecurePass123!"
+}
+
+> {%
+    client.global.set("authToken", response.body.token);
+%}
+
 ### 1. CREATE — first-time request with a brand new idempotency key
 # Expect: 202 Accepted, a real PaymentIntent body (status = CREATED)
 POST {{baseUrl}}/payment-intents
 Content-Type: application/json
 Idempotency-Key: {{$uuid}}
+Authorization: Bearer {{authToken}}
 
 {
   "amountMinorUnits": 1999,
@@ -21,6 +35,7 @@ Idempotency-Key: {{$uuid}}
 POST {{baseUrl}}/payment-intents
 Content-Type: application/json
 Idempotency-Key: fixed-test-key-0001
+Authorization: Bearer {{authToken}}
 
 {
   "amountMinorUnits": 2500,
@@ -32,6 +47,7 @@ Idempotency-Key: fixed-test-key-0001
 POST {{baseUrl}}/payment-intents
 Content-Type: application/json
 Idempotency-Key: {{$uuid}}
+Authorization: Bearer {{authToken}}
 
 {
   "amountMinorUnits": 0,
@@ -43,6 +59,7 @@ Idempotency-Key: {{$uuid}}
 POST {{baseUrl}}/payment-intents
 Content-Type: application/json
 Idempotency-Key: {{$uuid}}
+Authorization: Bearer {{authToken}}
 
 {
   "amountMinorUnits": 1500
@@ -52,6 +69,7 @@ Idempotency-Key: {{$uuid}}
 # Expect: 400 Bad Request (Spring's default missing-header handling)
 POST {{baseUrl}}/payment-intents
 Content-Type: application/json
+Authorization: Bearer {{authToken}}
 
 {
   "amountMinorUnits": 1500,
@@ -63,6 +81,7 @@ Content-Type: application/json
 POST {{baseUrl}}/payment-intents
 Content-Type: application/json
 Idempotency-Key: {{$uuid}}
+Authorization: Bearer {{authToken}}
 
 {
   "amountMinorUnits": 500,
@@ -78,6 +97,7 @@ Idempotency-Key: {{$uuid}}
 POST {{baseUrl}}/payment-intents
 Content-Type: application/json
 Idempotency-Key: concurrency-test-key-0001
+Authorization: Bearer {{authToken}}
 
 {
   "amountMinorUnits": 3000,
@@ -91,13 +111,16 @@ Idempotency-Key: concurrency-test-key-0001
 # and exactly two new ledger_entries rows (one DEBIT, one CREDIT) sharing the
 # same transaction_id, same amount_minor_units, same currency.
 POST {{baseUrl}}/payment-intents/{{paymentIntentId}}/process
+Authorization: Bearer {{authToken}}
 
 ### 9. PROCESS — invalid transition (double-process the same id)
 # Run request 8 again immediately using the SAME id.
 # Expect: 409 Conflict — SUCCEEDED has no outgoing transitions in the state machine,
 # so this should throw InvalidPaymentStateTransitionException.
 POST {{baseUrl}}/payment-intents/{{paymentIntentId}}/process
+Authorization: Bearer {{authToken}}
 
 ### 10. PROCESS — nonexistent id
 # Expect: 404 Not Found, ErrorResponse from PaymentIntentNotFoundException.
 POST {{baseUrl}}/payment-intents/00000000-0000-0000-0000-000000000000/process
+Authorization: Bearer {{authToken}}

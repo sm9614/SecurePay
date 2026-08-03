@@ -2,10 +2,24 @@
 @baseUrl = http://localhost:8080
 @paymentIntentId = f8bee764-15f9-4b70-b39b-842fc1aa3f24
 
+### 0. Login to get token (run this first, or whenever token expires)
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "duplicate-test@example.com",
+  "password": "SecurePass123!"
+}
+
+> {%
+    client.global.set("authToken", response.body.token);
+%}
+
 ### 1. Create a refund (happy path)
 POST {{baseUrl}}/payment-intents/{{paymentIntentId}}/refunds
 Content-Type: application/json
 Idempotency-Key: refund-key-001
+Authorization: Bearer {{authToken}}
 
 {
   "amountMinorUnits": 500
@@ -15,6 +29,7 @@ Idempotency-Key: refund-key-001
 POST {{baseUrl}}/payment-intents/{{paymentIntentId}}/refunds
 Content-Type: application/json
 Idempotency-Key: refund-key-001
+Authorization: Bearer {{authToken}}
 
 {
   "amountMinorUnits": 500
@@ -24,6 +39,7 @@ Idempotency-Key: refund-key-001
 POST {{baseUrl}}/payment-intents/{{paymentIntentId}}/refunds
 Content-Type: application/json
 Idempotency-Key: refund-key-002
+Authorization: Bearer {{authToken}}
 
 {
   "amountMinorUnits": 400
@@ -33,6 +49,7 @@ Idempotency-Key: refund-key-002
 POST {{baseUrl}}/payment-intents/{{paymentIntentId}}/refunds
 Content-Type: application/json
 Idempotency-Key: refund-key-003
+Authorization: Bearer {{authToken}}
 
 {
   "amountMinorUnits": 999999
@@ -41,6 +58,7 @@ Idempotency-Key: refund-key-003
 ### 5. Missing Idempotency-Key header — should return 400 (MissingRequestHeaderException)
 POST {{baseUrl}}/payment-intents/{{paymentIntentId}}/refunds
 Content-Type: application/json
+Authorization: Bearer {{authToken}}
 
 {
   "amountMinorUnits": 1000
@@ -50,15 +68,17 @@ Content-Type: application/json
 POST {{baseUrl}}/payment-intents/{{paymentIntentId}}/refunds
 Content-Type: application/json
 Idempotency-Key: refund-key-004
+Authorization: Bearer {{authToken}}
 
 {
   "amountMinorUnits": -5
 }
 
-### 7. Nonexistent payment intent — should return 500 via PaymentIntentNotFoundException (or whatever status you've mapped it to)
+### 7. Nonexistent payment intent — should return 409 via PaymentIntentNotFoundException
 POST {{baseUrl}}/payment-intents/00000000-0000-0000-0000-000000000000/refunds
 Content-Type: application/json
 Idempotency-Key: refund-key-005
+Authorization: Bearer {{authToken}}
 
 {
   "amountMinorUnits": 1000
