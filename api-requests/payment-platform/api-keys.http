@@ -1,0 +1,35 @@
+### Variables
+@baseUrl = http://localhost:8080
+
+### 0. Login to get token (run this first, or whenever token expires)
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "duplicate-test@example.com",
+  "password": "SecurePass123!"
+}
+
+> {%
+    client.global.set("authToken", response.body.token);
+%}
+
+### 1. Create an API key (happy path)
+# Expect: 201 Created, response body includes id, apiKey (raw, usable), createdAt
+# IMPORTANT: copy the "apiKey" value from this response now — it will never be shown again.
+POST {{baseUrl}}/merchants/me/api-keys
+Authorization: Bearer {{authToken}}
+
+### 2. Create a second API key for the same merchant
+# Expect: 201 Created, a DIFFERENT id and apiKey than request 1 — confirms multiple keys per merchant works
+POST {{baseUrl}}/merchants/me/api-keys
+Authorization: Bearer {{authToken}}
+
+### 3. Attempt to create an API key without a token
+# Expect: 401 Unauthorized (filter chain should block this before reaching the controller)
+POST {{baseUrl}}/merchants/me/api-keys
+
+### 4. Attempt to create an API key with a malformed/garbage token
+# Expect: 401 Unauthorized
+POST {{baseUrl}}/merchants/me/api-keys
+Authorization: Bearer this.is.not.a.valid.jwt

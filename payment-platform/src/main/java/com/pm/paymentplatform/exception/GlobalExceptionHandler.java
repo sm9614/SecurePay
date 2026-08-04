@@ -3,6 +3,7 @@ package com.pm.paymentplatform.exception;
 import com.pm.paymentplatform.idempotency.DuplicateIdempotencyKeyPendingException;
 import com.pm.paymentplatform.idempotency.IdempotencyKeyNotFoundException;
 import com.pm.paymentplatform.merchant.EmailAlreadyRegisteredException;
+import com.pm.paymentplatform.merchant.MerchantNotFoundException;
 import com.pm.paymentplatform.refund.PaymentIntentNotRefundableException;
 import com.pm.paymentplatform.refund.RefundExceedsAvailableBalanceException;
 import com.pm.paymentplatform.security.InvalidCredentialsException;
@@ -84,6 +85,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleInvalidCredentials(InvalidCredentialsException e) {
         ErrorResponse errorResponse = new ErrorResponse(e.getMessage(), null, Instant.now());
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
+    }
+
+    @ExceptionHandler(MerchantNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleMerchantNotFound(MerchantNotFoundException e) {
+        ErrorResponse errorResponse = new ErrorResponse(e.getMessage(), null, Instant.now());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
     }
 
     @ExceptionHandler(Exception.class)

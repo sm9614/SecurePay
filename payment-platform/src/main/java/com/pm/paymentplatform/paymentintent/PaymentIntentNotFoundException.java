@@ -13,6 +13,4 @@ public class PaymentIntentNotFoundException extends RuntimeException {
     public UUID getId() {
         return id;
     }
-
-
 }
