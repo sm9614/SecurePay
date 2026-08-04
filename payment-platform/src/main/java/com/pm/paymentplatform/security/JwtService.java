@@ -26,6 +26,7 @@ public class JwtService {
 
     public String generateToken(Merchant merchant) {
         return Jwts.builder()
+                .claim("role", merchant.getRole().name())
                 .subject(String.valueOf(merchant.getId()))
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + expiration))
@@ -42,6 +43,15 @@ public class JwtService {
                 .getPayload()
                 .getSubject()
         );
+    }
+
+    public String extractRole(String token) {
+        return Jwts.parser()
+                .verifyWith(secret)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload()
+                .get("role", String.class);
     }
 
     public boolean isTokenValid(String token) {

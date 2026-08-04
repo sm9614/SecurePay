@@ -13,7 +13,7 @@ public class Merchant {
     @GeneratedValue
     private UUID id;
 
-    @Column(name = "email",unique = true)
+    @Column(name = "email",unique = true, nullable = false)
     private String email;
 
     @Column(name = "password_hash", nullable = false)
@@ -24,6 +24,10 @@ public class Merchant {
 
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role", nullable = false )
+    private Role role = Role.MERCHANT;
 
     @PrePersist
     protected void onCreate() {
@@ -68,4 +72,11 @@ public class Merchant {
         return updatedAt;
     }
 
+    public Role getRole() {
+        return role;
+    }
+
+    public void setRole(Role role) {
+        this.role = role;
+    }
 }

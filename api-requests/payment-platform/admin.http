@@ -1,0 +1,46 @@
+### Variables
+@baseUrl = http://localhost:8080
+
+### 1. Login as ADMIN merchant (run the DB promotion SQL first, see below)
+# docker compose exec postgres psql -U user -d securepay -c "UPDATE merchants SET role = 'ADMIN' WHERE email = 'duplicate-test@example.com';"
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "duplicate-test@example.com",
+  "password": "SecurePass123!"
+}
+
+> {%
+    client.global.set("adminToken", response.body.token);
+%}
+
+### 2. GET /admin/merchants with ADMIN token
+# Expect: 200 OK, list of all merchants
+GET {{baseUrl}}/admin/merchants
+Authorization: Bearer {{adminToken}}
+
+
+### 3. Login as a regular MERCHANT (a different, non-promoted account)
+# Register one first if you don't already have a plain merchant account to use.
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "merchant-test@example.com",
+  "password": "SecurePass123!"
+}
+
+> {%
+    client.global.set("merchantToken", response.body.token);
+%}
+
+### 4. GET /admin/merchants with MERCHANT (non-admin) token
+# Expect: 403 Forbidden — authenticated, but wrong role
+GET {{baseUrl}}/admin/merchants
+Authorization: Bearer {{merchantToken}}
+
+
+### 5. GET /admin/merchants with no token at all
+# Expect: 401 Unauthorized
+GET {{baseUrl}}/admin/merchants

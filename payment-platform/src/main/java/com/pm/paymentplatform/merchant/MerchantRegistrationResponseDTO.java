@@ -13,6 +13,8 @@ public class MerchantRegistrationResponseDTO {
 
     private Instant updateAt;
 
+    private Role role;
+
     public String getEmail() {
         return email;
     }
@@ -45,4 +47,11 @@ public class MerchantRegistrationResponseDTO {
         this.updateAt = updateAt;
     }
 
+    public Role getRole() {
+        return role;
+    }
+
+    public void setRole(Role role) {
+        this.role = role;
+    }
 }
