@@ -1,6 +1,8 @@
 package com.pm.paymentplatform.security;
 
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -16,6 +18,8 @@ import java.security.SecureRandom;
 
 @Configuration
 public class SecurityConfig {
+
+    private static final Logger log = LoggerFactory.getLogger(SecurityConfig.class);
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -35,13 +39,19 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                     .requestMatchers(HttpMethod.POST, "/merchants/register").permitAll()
                     .requestMatchers(HttpMethod.POST, "/auth/login").permitAll()
+                    .requestMatchers("/error").permitAll()
                     .requestMatchers("/admin/**").hasRole("ADMIN")
                     .anyRequest().authenticated())
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
-            .exceptionHandling(exception -> exception
-                    .authenticationEntryPoint(((request, response, authException) ->
-                            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized"))));
-
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            log.error("Auth entry point triggered: {}", authException.getMessage());
+                            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");
+                        })
+                        .accessDeniedHandler((request, response, accessDeniedException) -> {
+                            log.error("Access denied handler triggered: {}", accessDeniedException.getMessage());
+                            response.sendError(HttpServletResponse.SC_FORBIDDEN, "Forbidden");
+                        }));
         return http.build();
 
     }

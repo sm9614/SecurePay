@@ -5,6 +5,8 @@ import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -17,6 +19,7 @@ public class JwtService {
 
     private final SecretKey secret;
     private final long expiration;
+    private final static Logger log = LoggerFactory.getLogger(JwtService.class);
 
     public JwtService(@Value("${jwt.secret}") String secret,
                       @Value("${jwt.expiration-ms}") long expiration ) {
@@ -64,6 +67,7 @@ public class JwtService {
             return true;
 
         }catch (JwtException e) {
+            log.error("Token validation failed: {}", e.getMessage());
             return false;
         }
     }
