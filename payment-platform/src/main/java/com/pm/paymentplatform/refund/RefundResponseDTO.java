@@ -1,5 +1,7 @@
 package com.pm.paymentplatform.refund;
 
+import com.pm.paymentplatform.merchant.Merchant;
+
 import java.time.Instant;
 import java.util.UUID;
 
@@ -14,6 +16,8 @@ public class RefundResponseDTO {
     private Instant createdAt;
 
     private Instant updatedAt;
+
+    private Merchant merchant;
 
     public UUID getId() {
         return id;
@@ -55,4 +59,11 @@ public class RefundResponseDTO {
         this.createdAt = createdAt;
     }
 
+    public Merchant getMerchant() {
+        return merchant;
+    }
+
+    public void setMerchant(Merchant merchant) {
+        this.merchant = merchant;
+    }
 }

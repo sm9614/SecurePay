@@ -1,5 +1,6 @@
 package com.pm.paymentplatform.refund;
 
+import com.pm.paymentplatform.merchant.Merchant;
 import com.pm.paymentplatform.paymentintent.PaymentIntent;
 import jakarta.persistence.*;
 
@@ -17,6 +18,10 @@ public class Refund {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "payment_intent_id" ,nullable = false)
     private PaymentIntent paymentIntent;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "merchant_id", nullable = false)
+    private Merchant merchant;
 
     @Column(name = "amount_minor_units", nullable = false)
     private Long amountMinorUnits;
@@ -78,9 +83,15 @@ public class Refund {
         return createdAt;
     }
 
-
     public Instant getUpdatedAt() {
         return updatedAt;
     }
 
+    public Merchant getMerchant() {
+        return merchant;
+    }
+
+    public void setMerchant(Merchant merchant) {
+        this.merchant = merchant;
+    }
 }

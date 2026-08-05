@@ -1,9 +1,11 @@
 package com.pm.paymentplatform.refund;
 
 import com.pm.paymentplatform.idempotency.*;
+import com.pm.paymentplatform.merchant.Merchant;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import tools.jackson.databind.ObjectMapper;
 
@@ -46,7 +48,12 @@ public class RefundController {
             throw new DuplicateIdempotencyKeyPendingException("A request with this idempotency key is already in progress");
             
         } else {
-            RefundResponseDTO response = refundService.createRefund(paymentIntentId, request);
+            UUID merchantId = (UUID) SecurityContextHolder
+                    .getContext()
+                    .getAuthentication()
+                    .getPrincipal();
+
+            RefundResponseDTO response = refundService.createRefund(paymentIntentId, request, merchantId);
             String body = objectMapper.writeValueAsString(response);
             idempotencyKeyService.completeIdempotencyKey(idempotencyResult.entity(), HttpStatus.ACCEPTED.value(), body);
             return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);

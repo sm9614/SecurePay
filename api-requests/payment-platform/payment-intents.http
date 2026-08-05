@@ -1,7 +1,6 @@
 ### Variables
-# Adjust host/port if your app runs elsewhere
 @baseUrl = http://localhost:8080
-@paymentIntentId = f8bee764-15f9-4b70-b39b-842fc1aa3f24
+@paymentIntentId = 35ae69a3-2baa-40de-b33c-68ad06c9d1e2
 
 ### 0. Login to get token (run this first, or whenever token expires)
 POST {{baseUrl}}/auth/login
@@ -29,9 +28,6 @@ Authorization: Bearer {{authToken}}
 }
 
 ### 2. DUPLICATE_COMPLETE — replay the exact same request
-# Uses a FIXED idempotency key (not {{$uuid}}) so both runs send the same value.
-# Run this request, then run it again immediately.
-# Expect: same status code + same body (same PaymentIntent id) both times — no new row created.
 POST {{baseUrl}}/payment-intents
 Content-Type: application/json
 Idempotency-Key: fixed-test-key-0001
@@ -43,7 +39,6 @@ Authorization: Bearer {{authToken}}
 }
 
 ### 3. Validation failure — missing/invalid amount
-# Expect: 400 Bad Request, ErrorResponse with field-level errors (amountMinorUnits)
 POST {{baseUrl}}/payment-intents
 Content-Type: application/json
 Idempotency-Key: {{$uuid}}
@@ -55,7 +50,6 @@ Authorization: Bearer {{authToken}}
 }
 
 ### 4. Validation failure — missing currency
-# Expect: 400 Bad Request
 POST {{baseUrl}}/payment-intents
 Content-Type: application/json
 Idempotency-Key: {{$uuid}}
@@ -66,7 +60,6 @@ Authorization: Bearer {{authToken}}
 }
 
 ### 5. Missing Idempotency-Key header entirely
-# Expect: 400 Bad Request (Spring's default missing-header handling)
 POST {{baseUrl}}/payment-intents
 Content-Type: application/json
 Authorization: Bearer {{authToken}}
@@ -76,8 +69,7 @@ Authorization: Bearer {{authToken}}
   "currency": "USD"
 }
 
-### 6. Different currency — JPY (zero minor units, just to sanity check Currency converter)
-# Expect: 202 Accepted
+### 6. Different currency — JPY
 POST {{baseUrl}}/payment-intents
 Content-Type: application/json
 Idempotency-Key: {{$uuid}}
@@ -88,12 +80,7 @@ Authorization: Bearer {{authToken}}
   "currency": "JPY"
 }
 
-### 7. DUPLICATE_PENDING (manual/concurrency test)
-# Hard to trigger with a single sequential client — this endpoint responds fast.
-# To actually see 409 here, you'd need two near-simultaneous requests with the same
-# NEW key (e.g. fire this twice back-to-back very quickly, or use a tool that sends
-# concurrent requests). Left here as a placeholder — revisit once you have a way
-# to fire true concurrent requests (e.g. a small script, or Milestone 3 locking tests).
+### 7. DUPLICATE_PENDING (manual/concurrency test, placeholder)
 POST {{baseUrl}}/payment-intents
 Content-Type: application/json
 Idempotency-Key: concurrency-test-key-0001
@@ -105,22 +92,40 @@ Authorization: Bearer {{authToken}}
 }
 
 ### 8. PROCESS — transition a payment intent from CREATED to SUCCEEDED
-# Replace the id below with a real id from a prior CREATE response (must currently be CREATED).
-# Expect: 200 OK, PaymentIntent body with status = SUCCEEDED.
-# Side effects to verify in the DB: payment_intents row updated to SUCCEEDED,
-# and exactly two new ledger_entries rows (one DEBIT, one CREDIT) sharing the
-# same transaction_id, same amount_minor_units, same currency.
+# Replace {{paymentIntentId}} with a real id from a prior CREATE response (must currently be CREATED).
 POST {{baseUrl}}/payment-intents/{{paymentIntentId}}/process
 Authorization: Bearer {{authToken}}
 
 ### 9. PROCESS — invalid transition (double-process the same id)
-# Run request 8 again immediately using the SAME id.
-# Expect: 409 Conflict — SUCCEEDED has no outgoing transitions in the state machine,
-# so this should throw InvalidPaymentStateTransitionException.
+# Expect: 409 Conflict
 POST {{baseUrl}}/payment-intents/{{paymentIntentId}}/process
 Authorization: Bearer {{authToken}}
 
 ### 10. PROCESS — nonexistent id
-# Expect: 404 Not Found, ErrorResponse from PaymentIntentNotFoundException.
+# Expect: 404 Not Found
 POST {{baseUrl}}/payment-intents/00000000-0000-0000-0000-000000000000/process
 Authorization: Bearer {{authToken}}
+
+### ============================================
+### Ownership tests — cross-merchant access
+### ============================================
+
+### 11. Login as a SECOND, different merchant
+# Register this account first if it doesn't already exist.
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "merchant-test@example.com",
+  "password": "SecurePass123!"
+}
+
+> {%
+    client.global.set("otherMerchantToken", response.body.token);
+%}
+
+### 12. OTHER merchant tries to process merchant A's payment intent
+# Use a paymentIntentId that belongs to the FIRST merchant (from request 1's response), currently CREATED.
+# Expect: 404 Not Found — ownership check should hide existence, not leak a 403.
+POST {{baseUrl}}/payment-intents/{{paymentIntentId}}/process
+Authorization: Bearer {{otherMerchantToken}}

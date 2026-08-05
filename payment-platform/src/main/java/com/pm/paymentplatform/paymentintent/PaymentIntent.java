@@ -1,6 +1,7 @@
 package com.pm.paymentplatform.paymentintent;
 
 import com.pm.paymentplatform.idempotency.IdempotencyKey;
+import com.pm.paymentplatform.merchant.Merchant;
 import jakarta.persistence.*;
 
 import java.time.Instant;
@@ -25,6 +26,10 @@ public class PaymentIntent {
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "idempotency_key_id", nullable = false)
     private IdempotencyKey idempotencyKey;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "merchant_id", nullable = false)
+    private Merchant merchant;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
@@ -99,4 +104,11 @@ public class PaymentIntent {
         this.updatedAt = updatedAt;
     }
 
+    public Merchant getMerchant() {
+        return merchant;
+    }
+
+    public void setMerchant(Merchant merchant) {
+        this.merchant = merchant;
+    }
 }

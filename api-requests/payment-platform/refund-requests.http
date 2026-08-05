@@ -1,6 +1,6 @@
 ### Variables (reuse from payment-intents.http if already defined there)
 @baseUrl = http://localhost:8080
-@paymentIntentId = f8bee764-15f9-4b70-b39b-842fc1aa3f24
+@paymentIntentId = 35ae69a3-2baa-40de-b33c-68ad06c9d1e2
 
 ### 0. Login to get token (run this first, or whenever token expires)
 POST {{baseUrl}}/auth/login
@@ -74,7 +74,7 @@ Authorization: Bearer {{authToken}}
   "amountMinorUnits": -5
 }
 
-### 7. Nonexistent payment intent — should return 409 via PaymentIntentNotFoundException
+### 7. Nonexistent payment intent — should return 404 via PaymentIntentNotFoundException
 POST {{baseUrl}}/payment-intents/00000000-0000-0000-0000-000000000000/refunds
 Content-Type: application/json
 Idempotency-Key: refund-key-005
@@ -82,4 +82,33 @@ Authorization: Bearer {{authToken}}
 
 {
   "amountMinorUnits": 1000
+}
+
+### ============================================
+### Ownership tests — cross-merchant access
+### ============================================
+
+### 8. Login as a SECOND, different merchant
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "merchant-test@example.com",
+  "password": "SecurePass123!"
+}
+
+> {%
+    client.global.set("otherMerchantToken", response.body.token);
+%}
+
+### 9. OTHER merchant tries to refund merchant A's SUCCEEDED payment intent
+# Use a paymentIntentId that belongs to the FIRST merchant (SUCCEEDED status, from payment-intents.http request 8).
+# Expect: 404 Not Found — ownership check should hide existence, not leak a 403.
+POST {{baseUrl}}/payment-intents/{{paymentIntentId}}/refunds
+Content-Type: application/json
+Idempotency-Key: refund-ownership-test-001
+Authorization: Bearer {{otherMerchantToken}}
+
+{
+  "amountMinorUnits": 100
 }

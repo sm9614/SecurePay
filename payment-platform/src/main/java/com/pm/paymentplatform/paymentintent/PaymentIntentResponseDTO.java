@@ -1,5 +1,7 @@
 package com.pm.paymentplatform.paymentintent;
 
+import com.pm.paymentplatform.merchant.Merchant;
+
 import java.time.Instant;
 import java.util.Currency;
 import java.util.UUID;
@@ -17,6 +19,8 @@ public class PaymentIntentResponseDTO {
     private Instant createdAt;
 
     private Instant updatedAt;
+
+    private Merchant merchant;
 
     public UUID getId() {
         return id;
@@ -66,4 +70,11 @@ public class PaymentIntentResponseDTO {
         this.amountMinorUnits = amountMinorUnits;
     }
 
+    public Merchant getMerchant() {
+        return merchant;
+    }
+
+    public void setMerchant(Merchant merchant) {
+        this.merchant = merchant;
+    }
 }
