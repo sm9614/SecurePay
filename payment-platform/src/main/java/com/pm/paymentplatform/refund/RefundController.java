@@ -1,7 +1,6 @@
 package com.pm.paymentplatform.refund;
 
 import com.pm.paymentplatform.idempotency.*;
-import com.pm.paymentplatform.merchant.Merchant;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
