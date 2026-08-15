@@ -1,6 +1,6 @@
 ### Variables (reuse from payment-intents.http if already defined there)
 @baseUrl = http://localhost:8080
-@paymentIntentId = 35ae69a3-2baa-40de-b33c-68ad06c9d1e2
+@paymentIntentId = 1a5f97cb-4c2d-4078-8f6e-bb12c60c5b70
 
 ### 0. Login to get token (run this first, or whenever token expires)
 POST {{baseUrl}}/auth/login
@@ -24,6 +24,10 @@ Authorization: Bearer {{authToken}}
 {
   "amountMinorUnits": 500
 }
+
+> {%
+    client.global.set("refundId", response.body.id);
+%}
 
 ### 2. Replay the same request (same Idempotency-Key) — should return identical response, no new row
 POST {{baseUrl}}/payment-intents/{{paymentIntentId}}/refunds
@@ -112,3 +116,29 @@ Authorization: Bearer {{otherMerchantToken}}
 {
   "amountMinorUnits": 100
 }
+
+### ============================================
+### Process refund — outbox/Kafka pipeline (Milestone 5)
+### ============================================
+
+### 10. Process the refund (merchant A, owner) — simulateProcessor() is hardcoded to fail right now,
+# so this should transition CREATED -> PROCESSING -> FAILED and write a REFUND_FAILED outbox event
+# in the same transaction. Watch container logs / DB to confirm the outbox row, then the relay picking
+# it up (PENDING -> PUBLISHED) and Kafka receiving it on "refund-events".
+POST {{baseUrl}}/refunds/{{refundId}}/process
+Authorization: Bearer {{authToken}}
+
+### 11. Process again — refund is now FAILED, so this exercises FAILED -> PROCESSING -> FAILED again.
+# Useful as a crude "poll" since there's no GET endpoint yet: rerun this and read the response body's
+# status field directly to see current state.
+POST {{baseUrl}}/refunds/{{refundId}}/process
+Authorization: Bearer {{authToken}}
+
+### 12. OTHER merchant tries to process merchant A's refund — should return 404, not 403,
+# same ownership-hiding pattern as request 9.
+POST {{baseUrl}}/refunds/{{refundId}}/process
+Authorization: Bearer {{otherMerchantToken}}
+
+### 13. Nonexistent refund id — should return 404 via RefundNotFoundException
+POST {{baseUrl}}/refunds/00000000-0000-0000-0000-000000000000/process
+Authorization: Bearer {{authToken}}

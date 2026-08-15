@@ -15,6 +15,17 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
 jwt:
   secret: ${JWT_SECRET}
   expiration-ms: 3600000
+
+relay:
+  delay-ms: 2000
+  batch-size: 100
+  max-retries: 3
