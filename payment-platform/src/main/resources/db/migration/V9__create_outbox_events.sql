@@ -9,7 +9,7 @@ CREATE TABLE outbox_events (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     published_at TIMESTAMPTZ,
     CONSTRAINT chk_outbox_aggregate_type CHECK (aggregate_type IN ('REFUND', 'PAYMENT_INTENT')),
-    CONSTRAINT chk_outbox_status CHECK (status IN ('PENDING', 'PUBLISHED', 'FAILED'))
+    CONSTRAINT chk_outbox_status CHECK (status IN ('PENDING', 'PUBLISHED', 'FAILED', 'DEAD_LETTER'))
 );
 
 CREATE INDEX idx_outbox_pending_created_at

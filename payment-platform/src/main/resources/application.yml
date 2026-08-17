@@ -20,6 +20,9 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      properties:
+        delivery.timeout.ms: 5000
+        request.timeout.ms: 3000
 
 jwt:
   secret: ${JWT_SECRET}

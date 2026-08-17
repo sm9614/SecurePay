@@ -63,7 +63,7 @@ public class OutboxRelay {
         Pageable pageable = PageRequest.of(0, batchSize);
         List<OutboxEvent> batch = outboxEventRepository.findByStatusForUpdate(OutboxStatus.FAILED, pageable);
         batch.forEach(outboxEvent -> {
-           if (outboxEvent.getRetryCount() > maxRetries) {
+           if (outboxEvent.getRetryCount() >= maxRetries) {
                outboxEvent.setStatus(OutboxEventStateMachine.transition(
                        outboxEvent.getStatus(),
                        OutboxStatus.DEAD_LETTER
