@@ -23,6 +23,12 @@ spring:
       properties:
         delivery.timeout.ms: 5000
         request.timeout.ms: 3000
+    consumer:
+      group-id: payment-platform-refund-consumer
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    listener:
+      ack-mode: manual
 
 jwt:
   secret: ${JWT_SECRET}

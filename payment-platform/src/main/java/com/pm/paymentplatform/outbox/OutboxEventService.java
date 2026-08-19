@@ -17,18 +17,19 @@ public class OutboxEventService {
         this.objectMapper = objectMapper;
     }
 
-    public void recordEvent(AggregateType aggregateType,
+    public void recordEvent(UUID id,
+                            AggregateType aggregateType,
                             UUID aggregateId,
                             String eventType,
                             Object payload) {
 
         OutboxEvent outboxEvent = new OutboxEvent();
+        outboxEvent.setId(id);
         outboxEvent.setStatus(OutboxStatus.PENDING);
         outboxEvent.setAggregateType(aggregateType);
         outboxEvent.setAggregateId(aggregateId);
         outboxEvent.setEventType(eventType);
         outboxEvent.setPayload(objectMapper.writeValueAsString(payload));
-
         outboxEventRepository.save(outboxEvent);
     }
 }

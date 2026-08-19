@@ -12,7 +12,6 @@ import java.util.UUID;
 public class OutboxEvent {
 
     @Id
-    @GeneratedValue
     private UUID id;
 
     @Enumerated(EnumType.STRING)

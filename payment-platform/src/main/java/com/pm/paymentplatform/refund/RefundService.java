@@ -86,12 +86,21 @@ public class RefundService {
             refund.setStatus(RefundStateMachine.transition(refund.getStatus(), RefundStatus.SUCCEEDED));
         } else {
             refund.setStatus(RefundStateMachine.transition(refund.getStatus(), RefundStatus.FAILED));
+            UUID eventId = UUID.randomUUID();
             RefundFailedEvent refundFailedEvent = new RefundFailedEvent(
+                    eventId,
                     refundId,
                     refund.getPaymentIntent().getId(),
                     refund.getAmountMinorUnits()
             );
-            outboxEventService.recordEvent(AggregateType.REFUND, refundId, "REFUND_FAILED", refundFailedEvent);
+
+            outboxEventService.recordEvent(
+                    eventId,
+                    AggregateType.REFUND,
+                    refundId,
+                    "REFUND_FAILED",
+                    refundFailedEvent
+            );
 
         }
         refundRepository.save(refund);
