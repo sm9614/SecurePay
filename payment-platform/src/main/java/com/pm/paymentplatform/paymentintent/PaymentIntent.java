@@ -16,6 +16,9 @@ public class PaymentIntent {
     @GeneratedValue
     private UUID id;
 
+    @Column(name = "processor_reference")
+    private String processorReference;
+
     @Column(name = "amount_minor_units", nullable = false)
     // Stores money in smaller unit (cents) unless the currency doesn't have a smaller unit
     private Long amountMinorUnits;
@@ -58,6 +61,14 @@ public class PaymentIntent {
 
     public void setId(UUID id) {
         this.id = id;
+    }
+
+    public String getProcessorReference() {
+        return processorReference;
+    }
+
+    public void setProcessorReference(String processorReference) {
+        this.processorReference = processorReference;
     }
 
     public Long getAmountMinorUnits() {

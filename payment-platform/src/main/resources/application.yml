@@ -38,3 +38,6 @@ relay:
   delay-ms: 2000
   batch-size: 100
   max-retries: 3
+
+stripe:
+  api-key: ${STRIPE_API_KEY}

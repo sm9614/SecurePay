@@ -15,6 +15,9 @@ public class Refund {
     @GeneratedValue
     private UUID id;
 
+    @Column(name = "processor_reference")
+    private String processorReference;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "payment_intent_id" ,nullable = false)
     private PaymentIntent paymentIntent;
@@ -53,6 +56,14 @@ public class Refund {
 
     public void setId(UUID id) {
         this.id = id;
+    }
+
+    public String getProcessorReference() {
+        return processorReference;
+    }
+
+    public void setProcessorReference(String processorReference) {
+        this.processorReference = processorReference;
     }
 
     public PaymentIntent getPaymentIntent() {
