@@ -3,10 +3,8 @@ package com.pm.paymentplatform.refund;
 import com.pm.paymentplatform.merchant.Merchant;
 import com.pm.paymentplatform.merchant.MerchantNotFoundException;
 import com.pm.paymentplatform.merchant.MerchantRepository;
-import com.pm.paymentplatform.outbox.AggregateType;
-import com.pm.paymentplatform.outbox.OutboxEventService;
+import com.pm.paymentplatform.payment.ProcessorResult;
 import com.pm.paymentplatform.paymentintent.*;
-import com.pm.paymentplatform.statemachine.InvalidStateTransitionException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,16 +16,16 @@ public class RefundService {
     private final PaymentIntentRepository paymentIntentRepository;
     private final RefundRepository refundRepository;
     private final MerchantRepository merchantRepository;
-    private final OutboxEventService outboxEventService;
+    private final RefundProcessingService refundProcessingService;
 
     public RefundService(RefundRepository refundRepository,
                          PaymentIntentRepository paymentIntentRepository,
                          MerchantRepository merchantRepository,
-                         OutboxEventService outboxEventService) {
+                         RefundProcessingService refundProcessingService) {
         this.refundRepository = refundRepository;
         this.paymentIntentRepository = paymentIntentRepository;
         this.merchantRepository = merchantRepository;
-        this.outboxEventService = outboxEventService;
+        this.refundProcessingService = refundProcessingService;
     }
 
     @Transactional
@@ -65,51 +63,14 @@ public class RefundService {
         return RefundMapper.toResponseDTO(refund);
     }
 
-    @Transactional
-    public RefundResponseDTO processRefund(UUID refundId,
-                                           UUID merchantId) {
-        Merchant merchant = merchantRepository.findById(merchantId)
-                .orElseThrow(() -> new MerchantNotFoundException(merchantId));
+    public RefundResponseDTO processRefund(UUID refundId, UUID merchantId) {
+        RefundProcessingContext context = refundProcessingService.beginProcessing(refundId, merchantId);
+        ProcessorResult result = refundProcessingService.executeRefund(context);
+        refundProcessingService.completeProcessing(refundId, result);
 
-        Refund refund = refundRepository.getRefundByIdWithLock(refundId)
+        Refund refund = refundRepository.findById(refundId)
                 .orElseThrow(() -> new RefundNotFoundException(refundId));
 
-        refund.setStatus(RefundStateMachine.transition(
-                refund.getStatus(),
-                RefundStatus.PROCESSING));
-
-        if (!refund.getMerchant().getId().equals(merchant.getId())) {
-            throw new RefundNotFoundException(refundId);
-        }
-
-        if (simulateProcessor()) {
-            refund.setStatus(RefundStateMachine.transition(refund.getStatus(), RefundStatus.SUCCEEDED));
-        } else {
-            refund.setStatus(RefundStateMachine.transition(refund.getStatus(), RefundStatus.FAILED));
-            UUID eventId = UUID.randomUUID();
-            RefundFailedEvent refundFailedEvent = new RefundFailedEvent(
-                    eventId,
-                    refundId,
-                    refund.getPaymentIntent().getId(),
-                    refund.getAmountMinorUnits()
-            );
-
-            outboxEventService.recordEvent(
-                    eventId,
-                    AggregateType.REFUND,
-                    refundId,
-                    "REFUND_FAILED",
-                    refundFailedEvent
-            );
-
-        }
-        refundRepository.save(refund);
         return RefundMapper.toResponseDTO(refund);
-
-    }
-
-    //todo replace this with real payment processing
-    private boolean simulateProcessor() {
-        return false;
     }
 }
