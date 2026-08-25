@@ -79,9 +79,7 @@ public class PaymentIntentController {
                 .getAuthentication()
                 .getPrincipal();
 
-        PaymentIntent paymentIntent = paymentIntentService.processPaymentIntent(UUID.fromString(id), merchantId);
-        ledgerService.recordDoubleEntry(paymentIntent);
-        PaymentIntentResponseDTO response = paymentIntentService.completePaymentIntent(paymentIntent);
+        PaymentIntentResponseDTO response = paymentIntentService.processPaymentIntent(UUID.fromString(id), merchantId);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 }

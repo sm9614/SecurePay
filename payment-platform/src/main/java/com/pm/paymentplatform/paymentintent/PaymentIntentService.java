@@ -4,10 +4,10 @@ import com.pm.paymentplatform.idempotency.IdempotencyKey;
 import com.pm.paymentplatform.merchant.Merchant;
 import com.pm.paymentplatform.merchant.MerchantNotFoundException;
 import com.pm.paymentplatform.merchant.MerchantRepository;
+import com.pm.paymentplatform.payment.ProcessorResult;
 import org.springframework.stereotype.Service;
 
 import java.util.Currency;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -15,11 +15,14 @@ public class PaymentIntentService {
 
     private final PaymentIntentRepository paymentIntentRepository;
     private final MerchantRepository merchantRepository;
+    private final PaymentIntentProcessingService paymentIntentProcessingService;
 
     public PaymentIntentService(PaymentIntentRepository paymentIntentRepository,
-                                MerchantRepository merchantRepository) {
+                                MerchantRepository merchantRepository,
+                                PaymentIntentProcessingService paymentIntentProcessingService) {
         this.paymentIntentRepository = paymentIntentRepository;
         this.merchantRepository = merchantRepository;
+        this.paymentIntentProcessingService = paymentIntentProcessingService;
     }
 
     public PaymentIntentResponseDTO createPaymentIntent(Long amountMinorUnits,
@@ -27,7 +30,7 @@ public class PaymentIntentService {
                                                         IdempotencyKey idempotencyKey,
                                                         UUID merchantId) {
         Merchant merchant = merchantRepository.findById(merchantId)
-                .orElseThrow( () -> new MerchantNotFoundException(merchantId));
+                .orElseThrow(() -> new MerchantNotFoundException(merchantId));
 
         PaymentIntent paymentIntent = new PaymentIntent();
         paymentIntent.setAmountMinorUnits(amountMinorUnits);
@@ -40,28 +43,16 @@ public class PaymentIntentService {
         return PaymentIntentMapper.toResponseDTO(paymentIntent);
     }
 
-    public PaymentIntent processPaymentIntent(UUID paymentIntentId,
+    public PaymentIntentResponseDTO processPaymentIntent(UUID paymentIntentId,
                                               UUID merchantId) {
-        PaymentIntent paymentIntent = paymentIntentRepository.getPaymentIntentById(paymentIntentId)
+        PaymentIntentProcessingContext context = paymentIntentProcessingService.beginProcessing(paymentIntentId, merchantId);
+        ProcessorResult result = paymentIntentProcessingService.executeCharge(context);
+        paymentIntentProcessingService.completeProcessing(paymentIntentId, result);
+
+        PaymentIntent paymentIntent = paymentIntentRepository.findById(paymentIntentId)
                 .orElseThrow(() -> new PaymentIntentNotFoundException(paymentIntentId));
-
-        if (!paymentIntent.getMerchant().getId().equals(merchantId)) {
-            throw new PaymentIntentNotFoundException(paymentIntentId);
-        }
-
-        paymentIntent.setStatus(PaymentIntentStateMachine.transition(
-                        paymentIntent.getStatus(),
-                        PaymentIntentStatus.PROCESSING));
-
-        paymentIntentRepository.save(paymentIntent);
-
-        return paymentIntent;
-    }
-
-    public PaymentIntentResponseDTO completePaymentIntent(PaymentIntent paymentIntent) {
-        paymentIntent.setStatus(PaymentIntentStateMachine.transition(paymentIntent.getStatus(), PaymentIntentStatus.SUCCEEDED));
-        paymentIntentRepository.save(paymentIntent);
 
         return PaymentIntentMapper.toResponseDTO(paymentIntent);
     }
+
 }
