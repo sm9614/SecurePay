@@ -17,7 +17,7 @@ public class RefundResponseDTO {
 
     private Instant updatedAt;
 
-    private Merchant merchant;
+    private UUID merchantId;
 
     public UUID getId() {
         return id;
@@ -59,11 +59,11 @@ public class RefundResponseDTO {
         this.createdAt = createdAt;
     }
 
-    public Merchant getMerchant() {
-        return merchant;
+    public UUID getMerchantId() {
+        return merchantId;
     }
 
-    public void setMerchant(Merchant merchant) {
-        this.merchant = merchant;
+    public void setMerchantId(UUID merchantId) {
+        this.merchantId = merchantId;
     }
 }

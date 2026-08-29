@@ -10,7 +10,7 @@ public class PaymentIntentMapper {
         response.setStatus(entity.getStatus());
         response.setCreatedAt(entity.getCreatedAt());
         response.setUpdatedAt(entity.getUpdatedAt());
-        response.setMerchant(entity.getMerchant());
+        response.setMerchantId(entity.getMerchant().getId());
         return response;
     }
 }

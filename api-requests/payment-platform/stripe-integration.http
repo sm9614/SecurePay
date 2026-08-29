@@ -1,0 +1,111 @@
+### SecurePay — Stripe Integration Test Flow
+### Uses IntelliJ HTTP Client scripting (client.global.set) to auto-capture
+### tokens/IDs between requests, and {{$uuid}} to auto-generate idempotency keys.
+### Adjust host, login path, and field names below to match your actual API.
+
+@baseUrl = http://localhost:8080
+
+### =========================================================
+### 0. Login — captures the JWT automatically for every request below
+### =========================================================
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "test-merchant@example.com",
+  "password": "your-password"
+}
+
+> {%
+    client.global.set("authToken", response.body.token);
+%}
+
+
+### =========================================================
+### 1. HAPPY PATH — create, charge, and refund a payment
+### =========================================================
+
+### 1a. Create a payment intent — fresh idempotency key each run
+# Expect: 202 Accepted, status = CREATED
+POST {{baseUrl}}/payment-intents
+Content-Type: application/json
+Idempotency-Key: {{$uuid}}
+Authorization: Bearer {{authToken}}
+
+{
+  "amountMinorUnits": 50,
+  "currency": "USD"
+}
+
+> {%
+    client.global.set("paymentIntentId", response.body.id);
+%}
+
+### 1b. Process the payment intent — charges via Stripe (pm_card_visa → should SUCCEED)
+# Expect: status = SUCCEEDED
+# Check DB separately: payment_intents.processor_reference should now be populated
+POST {{baseUrl}}/payment-intents/{{paymentIntentId}}/process
+Authorization: Bearer {{authToken}}
+
+### 1c. Create a refund against the now-SUCCEEDED payment intent
+POST {{baseUrl}}/payment-intents/{{paymentIntentId}}/refunds
+Content-Type: application/json
+Idempotency-Key: {{$uuid}}
+Authorization: Bearer {{authToken}}
+
+{
+  "amountMinorUnits": 2000
+}
+
+> {%
+    client.global.set("refundId", response.body.id);
+%}
+
+### 1d. Process the refund — should SUCCEED now that processorReference exists
+# Expect: status = SUCCEEDED
+# Check DB separately: refunds.processor_reference should now be populated
+POST {{baseUrl}}/refunds/{{refundId}}/process
+Authorization: Bearer {{authToken}}
+
+
+### =========================================================
+### 2. DECLINE PATH — force a card decline
+### =========================================================
+### Before running this section: temporarily swap the hardcoded test
+### payment method constant in StripeProcessor from "pm_card_visa" to
+### a decline-triggering test token (e.g. "pm_card_chargeDeclined"),
+### rebuild, and rerun. Swap it back afterward.
+
+### 2a. Create a fresh payment intent for the decline test
+POST {{baseUrl}}/payment-intents
+Content-Type: application/json
+Idempotency-Key: {{$uuid}}
+Authorization: Bearer {{authToken}}
+
+{
+  "amountMinorUnits": 1500,
+  "currency": "USD"
+}
+
+> {%
+    client.global.set("declinePaymentIntentId", response.body.id);
+%}
+
+### 2b. Process it — should FAIL (Declined branch)
+# Expect: status = FAILED
+# Check DB separately: processor_reference should remain null
+POST {{baseUrl}}/payment-intents/{{declinePaymentIntentId}}/process
+Authorization: Bearer {{authToken}}
+
+
+### =========================================================
+### 3. Sanity check — refund cannot exceed remaining balance
+### =========================================================
+POST {{baseUrl}}/payment-intents/{{paymentIntentId}}/refunds
+Content-Type: application/json
+Idempotency-Key: {{$uuid}}
+Authorization: Bearer {{authToken}}
+
+{
+  "amountMinorUnits": 999999
+}

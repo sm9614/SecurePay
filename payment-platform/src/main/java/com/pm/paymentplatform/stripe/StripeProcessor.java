@@ -10,6 +10,8 @@ import com.stripe.model.Refund;
 import com.stripe.net.RequestOptions;
 import com.stripe.param.PaymentIntentCreateParams;
 import com.stripe.param.RefundCreateParams;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.Currency;
@@ -18,6 +20,7 @@ import java.util.Currency;
 public class StripeProcessor implements PaymentProcessor {
 
     private final StripeClient stripeClient;
+    private final Logger log =  LoggerFactory.getLogger(StripeProcessor.class);
     private final static String TEST_PAYMENT_METHOD = "pm_card_visa";
 
     public StripeProcessor(StripeClient stripeClient) {
@@ -61,6 +64,7 @@ public class StripeProcessor implements PaymentProcessor {
                 .setCurrency(currency.getCurrencyCode().toLowerCase())
                 .setPaymentMethod(TEST_PAYMENT_METHOD)
                 .setConfirm(true)
+                .addPaymentMethodType("card")
                 .build();
 
         RequestOptions options = RequestOptions
@@ -72,9 +76,11 @@ public class StripeProcessor implements PaymentProcessor {
             PaymentIntent paymentIntent = stripeClient.v1().paymentIntents().create(params, options);
             return new ProcessorResult.Success(paymentIntent.getId());
         } catch (CardException e) {
+            log.warn("Stripe card declined: declineCode={}, message={}", e.getDeclineCode(), e.getMessage());
             return new ProcessorResult.Declined(e.getDeclineCode(), e.getMessage());
 
         }catch (StripeException e) {
+            log.warn("Stripe processor error: message={}", e.getMessage());
             return new ProcessorResult.ProcessorError(e.getMessage());
         }
     }
