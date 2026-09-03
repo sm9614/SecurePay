@@ -1,6 +1,8 @@
 package com.pm.paymentplatform.outbox;
 
 import com.pm.paymentplatform.messaging.KafkaTopicMapper;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.header.internals.RecordHeader;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -9,6 +11,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
 
@@ -39,6 +42,12 @@ public class OutboxRelay {
             String topic = KafkaTopicMapper.map(outboxEvent.getAggregateType());
             String key = outboxEvent.getAggregateId().toString();
             String value = outboxEvent.getPayload();
+
+            ProducerRecord<String, String> record = new ProducerRecord<>(topic, key, value);
+            record.headers().add(new RecordHeader(
+                    "event_type",
+                    outboxEvent.getEventType().getBytes(StandardCharsets.UTF_8)
+            ));
             try {
                 kafkaTemplate.send(topic, key, value).get();
                 outboxEvent.setStatus(OutboxEventStateMachine.transition(

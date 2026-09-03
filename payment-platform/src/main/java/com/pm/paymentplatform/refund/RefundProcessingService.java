@@ -3,6 +3,7 @@ package com.pm.paymentplatform.refund;
 import com.pm.paymentplatform.merchant.Merchant;
 import com.pm.paymentplatform.merchant.MerchantNotFoundException;
 import com.pm.paymentplatform.merchant.MerchantRepository;
+import com.pm.paymentplatform.messaging.EventType;
 import com.pm.paymentplatform.outbox.AggregateType;
 import com.pm.paymentplatform.outbox.OutboxEventService;
 import com.pm.paymentplatform.payment.PaymentProcessor;
@@ -10,6 +11,8 @@ import com.pm.paymentplatform.payment.ProcessorResult;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
+import java.util.Currency;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -70,34 +73,57 @@ public class RefundProcessingService {
         Refund refund = refundRepository.getRefundByIdWithLock(refundId)
                 .orElseThrow(() -> new RefundNotFoundException(refundId));
 
+        UUID eventId = UUID.randomUUID();
+        UUID paymentIntentId = refund.getPaymentIntent().getId();
+        UUID merchantId = refund.getMerchant().getId();
+        Long amountMinorUnits = refund.getAmountMinorUnits();
+        Currency currency = refund.getPaymentIntent().getCurrency();
+        Instant occurredAt = Instant.now();
+
+        EventType eventType;
+        Object event;
+
         if (Objects.requireNonNull(result) instanceof ProcessorResult.Success(String processorReference)) {
             refund.setProcessorReference(processorReference);
             refund.setStatus(RefundStateMachine.transition(
                     refund.getStatus(),
                     RefundStatus.SUCCEEDED
             ));
+            eventType = EventType.REFUND_SUCCEEDED;
+            event = new RefundSucceededEvent(
+                    eventId,
+                    refundId,
+                    paymentIntentId,
+                    merchantId,
+                    amountMinorUnits,
+                    currency,
+                    occurredAt,
+                    processorReference
+            );
+
         } else {
             refund.setStatus(RefundStateMachine.transition(
                     refund.getStatus(),
                     RefundStatus.FAILED
             ));
-
-            UUID eventId = UUID.randomUUID();
-            RefundFailedEvent refundFailedEvent = new RefundFailedEvent(
+            eventType = EventType.REFUND_FAILED;
+            event = new RefundFailedEvent(
                     eventId,
-                    refund.getId(),
-                    refund.getPaymentIntent().getId(),
-                    refund.getAmountMinorUnits()
-            );
-
-            outboxEventService.recordEvent(
-                    eventId,
-                    AggregateType.REFUND,
                     refundId,
-                    "REFUND_FAILED",
-                    refundFailedEvent
+                    paymentIntentId,
+                    merchantId,
+                    amountMinorUnits,
+                    currency,
+                    occurredAt
             );
         }
+        outboxEventService.recordEvent(
+                eventId,
+                AggregateType.REFUND,
+                refundId,
+                eventType,
+                event
+        );
         refundRepository.save(refund);
     }
 }

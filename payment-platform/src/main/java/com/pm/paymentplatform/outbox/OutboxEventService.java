@@ -1,5 +1,6 @@
 package com.pm.paymentplatform.outbox;
 
+import com.pm.paymentplatform.messaging.EventType;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.ObjectMapper;
 
@@ -20,7 +21,7 @@ public class OutboxEventService {
     public void recordEvent(UUID id,
                             AggregateType aggregateType,
                             UUID aggregateId,
-                            String eventType,
+                            EventType eventType,
                             Object payload) {
 
         OutboxEvent outboxEvent = new OutboxEvent();
@@ -28,7 +29,7 @@ public class OutboxEventService {
         outboxEvent.setStatus(OutboxStatus.PENDING);
         outboxEvent.setAggregateType(aggregateType);
         outboxEvent.setAggregateId(aggregateId);
-        outboxEvent.setEventType(eventType);
+        outboxEvent.setEventType(String.valueOf(eventType));
         outboxEvent.setPayload(objectMapper.writeValueAsString(payload));
         outboxEventRepository.save(outboxEvent);
     }

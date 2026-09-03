@@ -1,7 +1,10 @@
 package com.pm.paymentplatform.refund;
 
+import com.pm.paymentplatform.messaging.EventType;
 import com.pm.paymentplatform.messaging.ProcessedEvent;
 import com.pm.paymentplatform.messaging.ProcessedEventRepository;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.common.header.Header;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -9,6 +12,9 @@ import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.ObjectMapper;
+
+import java.nio.charset.StandardCharsets;
+import java.util.UUID;
 
 @Component
 public class RefundEventConsumer {
@@ -25,24 +31,43 @@ public class RefundEventConsumer {
 
     @KafkaListener(topics = "refund-events", groupId = "${spring.kafka.consumer.group-id}")
     @Transactional
-    public void consume(String message, Acknowledgment acknowledgment) {
+    public void consume(ConsumerRecord<String, String> record, Acknowledgment acknowledgment) {
         try {
-            RefundFailedEvent event = objectMapper.readValue(message, RefundFailedEvent.class);
-
-            if (processedEventRepository.existsById(event.eventId())) {
-                log.info("Refund event already exists: {}", event.eventId());
+            Header header = record.headers().lastHeader("event-type");
+            if (header == null) {
+                log.error("Missing event-type header, skipping message at offset {}", record.offset());
                 acknowledgment.acknowledge();
                 return;
             }
-            log.info("Received refund event: {}", event);
+
+            EventType eventType = EventType.valueOf(new String(header.value(), StandardCharsets.UTF_8));
+            String message = record.value();
+
+            UUID eventId = switch (eventType) {
+                case REFUND_SUCCEEDED -> {
+                    RefundSucceededEvent event = objectMapper.readValue(message, RefundSucceededEvent.class);
+                    log.info("Received refund succeeded event: {}", event);
+                    yield event.eventId();
+                }
+                case REFUND_FAILED -> {
+                    RefundFailedEvent event = objectMapper.readValue(message, RefundFailedEvent.class);
+                    log.info("Received refund failed event: {}", event);
+                    yield event.eventId();
+                }
+                default -> throw new IllegalStateException("Unexpected event type on refund-events topic: " + eventType);
+            };
+
+            if (processedEventRepository.existsById(eventId)) {
+                log.info("Refund event already processed: {}", eventId);
+                acknowledgment.acknowledge();
+                return;
+            }
 
             ProcessedEvent processedEvent = new ProcessedEvent();
-            processedEvent.setEventId(event.eventId());
+            processedEvent.setEventId(eventId);
             processedEventRepository.save(processedEvent);
-
             acknowledgment.acknowledge();
-
-        } catch (Exception e) {
+        }catch (Exception e) {
             log.error(e.getMessage(), e);
         }
     }
