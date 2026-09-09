@@ -15,7 +15,6 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
-import java.time.Instant;
 
 @Component
 public class RefundEventConsumer {
@@ -66,8 +65,7 @@ public class RefundEventConsumer {
 
             ProcessedEvent processedEvent = new ProcessedEvent();
             processedEvent.setEventId(eventId);
-            processedEvent.setProcessedAt(Instant.now());
-            processedEventRepository.saveAndFlush(processedEvent);
+            processedEventRepository.save(processedEvent);
             acknowledgment.acknowledge();
         }catch (Exception e) {
             log.error(e.getMessage(), e);
