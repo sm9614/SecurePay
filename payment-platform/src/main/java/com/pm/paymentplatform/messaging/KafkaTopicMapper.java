@@ -6,8 +6,8 @@ public class KafkaTopicMapper {
 
     public static String map(AggregateType aggregateType) {
         return switch (aggregateType) {
-            case REFUND ->  "refund_events";
-            case PAYMENT_INTENT ->   "payment_intent-events";
+            case REFUND ->  "refund-events";
+            case PAYMENT_INTENT ->   "payment-intent-events";
         };
     }
 }

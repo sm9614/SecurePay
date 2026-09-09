@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.ObjectMapper;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.UUID;
 
 @Component
@@ -65,6 +66,7 @@ public class RefundEventConsumer {
 
             ProcessedEvent processedEvent = new ProcessedEvent();
             processedEvent.setEventId(eventId);
+            processedEvent.setProcessedAt(Instant.now());
             processedEventRepository.save(processedEvent);
             acknowledgment.acknowledge();
         }catch (Exception e) {

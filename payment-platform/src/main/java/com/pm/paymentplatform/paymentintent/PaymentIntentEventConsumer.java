@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.ObjectMapper;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.UUID;
 
 @Component
@@ -29,7 +30,7 @@ public class PaymentIntentEventConsumer {
         this.processedEventRepository = processedEventRepository;
     }
 
-    @KafkaListener(topics = "payment-intent-events", groupId = "${kafka.consumer.payment-intent-group-id}")
+    @KafkaListener(topics = "payment-intent-events", groupId = "${spring.kafka.consumer.payment-intent-group-id}")
     @Transactional
     public void consume(ConsumerRecord<String, String> record, Acknowledgment acknowledgment) {
         try {
@@ -64,6 +65,7 @@ public class PaymentIntentEventConsumer {
             }
             ProcessedEvent processedEvent = new ProcessedEvent();
             processedEvent.setEventId(eventId);
+            processedEvent.setProcessedAt(Instant.now());
             processedEventRepository.save(processedEvent);
             acknowledgment.acknowledge();
         } catch (Exception e) {

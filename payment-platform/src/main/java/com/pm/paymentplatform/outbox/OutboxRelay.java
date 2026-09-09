@@ -45,11 +45,11 @@ public class OutboxRelay {
 
             ProducerRecord<String, String> record = new ProducerRecord<>(topic, key, value);
             record.headers().add(new RecordHeader(
-                    "event_type",
+                    "event-type",
                     outboxEvent.getEventType().getBytes(StandardCharsets.UTF_8)
             ));
             try {
-                kafkaTemplate.send(topic, key, value).get();
+                kafkaTemplate.send(record).get();
                 outboxEvent.setStatus(OutboxEventStateMachine.transition(
                         outboxEvent.getStatus(),
                         OutboxStatus.PUBLISHED));
