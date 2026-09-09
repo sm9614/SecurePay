@@ -45,7 +45,7 @@ public class OutboxRelay {
 
             ProducerRecord<String, String> record = new ProducerRecord<>(topic, key, value);
             record.headers().add(new RecordHeader(
-                    "event-type",
+                    "event_type",
                     outboxEvent.getEventType().getBytes(StandardCharsets.UTF_8)
             ));
             try {

@@ -33,7 +33,7 @@ Idempotency-Key: {{$uuid}}
 Authorization: Bearer {{authToken}}
 
 {
-  "amountMinorUnits": 129,
+  "amountMinorUnits": 50,
   "currency": "USD"
 }
 
