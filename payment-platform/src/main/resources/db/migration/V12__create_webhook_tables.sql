@@ -23,7 +23,8 @@ CREATE TABLE webhook_deliveries
     next_attempt_at     TIMESTAMPTZ NOT NULL,
     last_response_code  TEXT,
     last_response_body  TEXT,
-    created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT uq_webhook_delivery_event_endpoint UNIQUE (event_id, webhook_endpoint_id)
 );
 
 CREATE INDEX idx_webhook_deliveries_endpoint_id

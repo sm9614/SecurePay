@@ -64,7 +64,7 @@ public class WebhookDelivery {
         return webhookEndpoint;
     }
 
-    public void setWebhookEndpointId(WebhookEndpoint webhookEndpoint) {
+    public void setWebhookEndpoint(WebhookEndpoint webhookEndpoint) {
         this.webhookEndpoint = webhookEndpoint;
     }
 
