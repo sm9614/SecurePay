@@ -1,5 +1,9 @@
 package com.pm.paymentplatform.webhook;
 
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import org.springframework.boot.http.client.ClientHttpRequestFactoryBuilder;
 import org.springframework.boot.http.client.HttpClientSettings;
 import org.springframework.http.MediaType;
@@ -22,12 +26,23 @@ public class WebhookDeliveryRelay {
     private static final int MAX_ATTEMPTS = 10;
     private final WebhookDeliveryRepository webhookDeliveryRepository;
     private final RestClient restClient;
+    private final WebhookSignatureService webhookSignatureService;
+    private final CircuitBreakerRegistry circuitBreakerRegistry;
 
-    public WebhookDeliveryRelay(WebhookDeliveryRepository webhookDeliveryRepository) {
+    public WebhookDeliveryRelay(WebhookDeliveryRepository webhookDeliveryRepository,
+                                WebhookSignatureService webhookSignatureService) {
         this.webhookDeliveryRepository = webhookDeliveryRepository;
+        this.webhookSignatureService = webhookSignatureService;
         this.restClient = RestClient.builder()
                 .requestFactory(clientHttpRequestFactory())
                 .build();
+
+        CircuitBreakerConfig config = CircuitBreakerConfig.custom()
+                .failureRateThreshold(50)
+                .waitDurationInOpenState(Duration.ofSeconds(30))
+                .permittedNumberOfCallsInHalfOpenState(3)
+                .build();
+        this.circuitBreakerRegistry = CircuitBreakerRegistry.of(config);
     }
 
     private ClientHttpRequestFactory clientHttpRequestFactory() {
@@ -55,12 +70,25 @@ public class WebhookDeliveryRelay {
         }
 
         try {
-            ResponseEntity<String> response = restClient.post()
+
+            String secret = delivery.getWebhookEndpoint().getSigningSecret();
+            String timeStamp = Instant.now().toString();
+            String payload = delivery.getPayload();
+            String signature = webhookSignatureService.sign(secret, timeStamp, payload);
+
+            CircuitBreaker circuitBreaker = circuitBreakerRegistry.circuitBreaker(
+                    delivery.getWebhookEndpoint().getId().toString());
+
+            ResponseEntity<String> response = circuitBreaker.executeSupplier(() ->
+                    restClient.post()
                     .uri(delivery.getWebhookEndpoint().getUrl())
                     .contentType(MediaType.APPLICATION_JSON)
-                    .body(delivery.getPayload())
+                    .header("X-Webhook-Signature", signature)
+                    .header("X-Webhook-Timestamp", timeStamp)
+                    .body(payload)
                     .retrieve()
-                    .toEntity(String.class);
+                    .toEntity(String.class)
+            );
 
             delivery.setStatus(WebhookDeliveryStatus.DELIVERED);
             delivery.setLastResponseCode(String.valueOf(response.getStatusCode().value()));
@@ -78,6 +106,8 @@ public class WebhookDeliveryRelay {
             delivery.setNextAttemptAt(computeNextAttempt(delivery.getAttemptCount()));
             delivery.setAttemptCount(delivery.getAttemptCount() + 1);
             delivery.setLastResponseBody(e.getMessage());
+        } catch (CallNotPermittedException e) {
+            delivery.setNextAttemptAt(Instant.now().plus(Duration.ofSeconds(30)));
         }
         webhookDeliveryRepository.save(delivery);
     }
