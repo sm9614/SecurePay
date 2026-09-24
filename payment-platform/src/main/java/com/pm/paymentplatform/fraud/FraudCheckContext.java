@@ -6,8 +6,8 @@ import java.util.UUID;
 
 public record FraudCheckContext(
         // Core transaction fields (proto 1-8)
-        String transactionId,
-        String merchantId,
+        UUID transactionId,
+        UUID merchantId,
         long amountMinorUnits,
         Currency currency,
         Instant occurredAt,
