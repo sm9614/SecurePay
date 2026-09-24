@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+package fraud.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option java_package = "com.pm.fraud.grpc";
+option java_multiple_files = true;
+
+service FraudCheckService {
+  rpc CheckTransaction(FraudCheckRequest) returns (FraudCheckResponse);
+}
+
+message FraudCheckRequest {
+  string transaction_id = 1;
+  string merchant_id= 2;
+
+  int64 amount_minor_units = 3;
+  string currency = 4;
+
+  google.protobuf.Timestamp occurred_at = 5;
+
+  string billing_country = 6;
+  string ip_country = 7;
+
+  bool is_first_time_card = 8;
+
+  // Precomputed context, supplied by the Java side (fraud service does not
+  // query PaymentIntent/Refund history directly — keeps the boundary clean)
+  int32 merchant_transaction_count_today = 9;
+  int64 merchant_average_amount_minor_units = 10;
+  int32 velocity_count_5min = 11;
+  int32 velocity_count_1hr = 12;
+  int32 prior_decline_count_24h = 13;
+  float prior_refund_rate = 14;      // 0.0–1.0, this merchant/card
+  bool is_new_merchant = 15;         // merchant age below some threshold
+}
+
+message FraudCheckResponse {
+  enum Decision {
+    DECISION_UNSPECIFIED = 0;
+    ALLOW = 1;
+    REVIEW = 2;
+    BLOCK = 3;
+  }
+
+  Decision decision = 1;
+  float risk_score = 2;
+  repeated string reason_code = 3;
+  string model_version = 4;
+}
