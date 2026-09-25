@@ -1,7 +1,8 @@
 package com.pm.paymentplatform.fraud;
 
-public enum FraudDecision {
-    ALLOW,
-    REVIEW,
-    BLOCK
+import java.util.List;
+
+public record FraudDecision(Decision decision,
+                            float riskScore,
+                            List<String> reasonCodes) {
 }
