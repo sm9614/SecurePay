@@ -42,3 +42,9 @@ relay:
 
 stripe:
   api-key: ${STRIPE_API_KEY}
+
+fraud:
+  grpc:
+    host: ${FRAUD_SERVICE_HOST}
+    port: ${FRAUD_SERVICE_PORT}
+    cert-path: ${FRAUD_SERVICE_CERT_PATH}

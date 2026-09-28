@@ -7,15 +7,20 @@ import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
-import io.grpc.Deadline;
-import io.grpc.ManagedChannel;
-import io.grpc.ManagedChannelBuilder;
-import io.grpc.StatusRuntimeException;
+import io.grpc.*;
+import io.grpc.netty.shaded.io.grpc.netty.GrpcSslContexts;
+import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
+import io.grpc.netty.shaded.io.netty.handler.ssl.SslContext;
+import io.grpc.netty.shaded.io.netty.handler.ssl.SslProvider;
 import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import javax.net.ssl.SSLException;
+import java.io.File;
+import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -32,13 +37,24 @@ public class GrpcFraudCheckClient implements FraudCheckClient {
     private final CircuitBreaker circuitBreaker;
     private final FraudCheckMapper fraudCheckMapper;
 
-    public GrpcFraudCheckClient(FraudCheckMapper fraudCheckMapper) {
+    public GrpcFraudCheckClient(FraudCheckMapper fraudCheckMapper,
+                                @Value("${fraud.grpc.host}") String host,
+                                @Value("${fraud.grpc.port}") int port,
+                                @Value("${fraud.grpc.cert-path}") String certPath) {
         this.fraudCheckMapper = fraudCheckMapper;
 
-        this.channel = ManagedChannelBuilder
-                .forAddress("localhost", 50051)
-                .usePlaintext()
-                .build();
+        try {
+            SslContext sslContext = GrpcSslContexts.forClient()
+                    .sslProvider(SslProvider.JDK)
+                    .trustManager(new File(certPath))
+                    .build();
+            this.channel = NettyChannelBuilder
+                    .forAddress(host, port)
+                    .sslContext(sslContext)
+                    .build();
+        } catch (SSLException e) {
+            throw new IllegalStateException("Failed to load fraud service TLS certificate from " + certPath, e);
+        }
 
         this.stub = FraudCheckServiceGrpc.newBlockingStub(channel);
 
