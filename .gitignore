@@ -26,3 +26,5 @@ replay_pid*
 .env
 certs/server-key.pem
 certs/server-cert.pem
+/fraud-service/.venv/
+/fraud-service/__pycache__
