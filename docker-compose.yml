@@ -54,6 +54,18 @@ services:
     volumes:
       - ./certs:/app/certs:ro
 
+  fraud-service:
+    build:
+      context: .
+      dockerfile: fraud-service/Dockerfile
+    ports:
+      - "${FRAUD_SERVICE_PORT}:${FRAUD_SERVICE_PORT}"
+    environment:
+      FRAUD_SERVICE_PORT: ${FRAUD_SERVICE_PORT}
+      FRAUD_SERVICE_KEY_PATH: /app/certs/server-key.pem
+      FRAUD_SERVICE_CERT_PATH: ${FRAUD_SERVICE_CERT_PATH}
+    volumes:
+      - ./certs:/app/certs:ro
 
 volumes:
   pgdata:
