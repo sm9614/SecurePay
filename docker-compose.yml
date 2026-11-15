@@ -54,7 +54,7 @@ services:
     volumes:
       - ./certs:/app/certs:ro
 
-  fraud-service:
+  fraud_service:
     build:
       context: .
       dockerfile: fraud-service/Dockerfile

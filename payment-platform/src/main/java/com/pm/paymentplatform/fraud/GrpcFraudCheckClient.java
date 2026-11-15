@@ -20,7 +20,6 @@ import org.springframework.stereotype.Component;
 
 import javax.net.ssl.SSLException;
 import java.io.File;
-import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.TimeUnit;

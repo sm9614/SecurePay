@@ -21,16 +21,19 @@ public class PaymentIntentProcessingService {
     private final LedgerService ledgerService;
     private final OutboxEventService outboxEventService;
     private final PaymentProcessor paymentProcessor;
+    private final PaymentIntentFailureRecorder paymentIntentFailureRecorder;
 
 
     PaymentIntentProcessingService(PaymentIntentRepository paymentIntentRepository,
                                    LedgerService ledgerService,
                                    OutboxEventService outboxEventService,
-                                   PaymentProcessor paymentProcessor) {
+                                   PaymentProcessor paymentProcessor,
+                                   PaymentIntentFailureRecorder paymentIntentFailureRecorder) {
         this.paymentIntentRepository = paymentIntentRepository;
         this.ledgerService = ledgerService;
         this.outboxEventService = outboxEventService;
         this.paymentProcessor = paymentProcessor;
+        this.paymentIntentFailureRecorder = paymentIntentFailureRecorder;
     }
 
     @Transactional
@@ -69,15 +72,6 @@ public class PaymentIntentProcessingService {
         PaymentIntent paymentIntent = paymentIntentRepository.getPaymentIntentByIdWithLock(paymentIntentId)
                 .orElseThrow(() -> new PaymentIntentNotFoundException(paymentIntentId));
 
-        UUID eventId = UUID.randomUUID();
-        UUID merchantId = paymentIntent.getMerchant().getId();
-        Long amountMinorUnits = paymentIntent.getAmountMinorUnits();
-        Currency currency = paymentIntent.getCurrency();
-        Instant occurredAt = Instant.now();
-
-        EventType eventType;
-        Object event;
-
         switch (result) {
             case ProcessorResult.Success(String processorReference) -> {
                 paymentIntent.setProcessorReference(processorReference);
@@ -86,60 +80,31 @@ public class PaymentIntentProcessingService {
                         PaymentIntentStatus.SUCCEEDED
                 ));
                 ledgerService.recordDoubleEntry(paymentIntent);
-                eventType = EventType.PAYMENT_INTENT_SUCCEEDED;
-                event = new PaymentIntentSucceededEvent(
+
+                UUID eventId = UUID.randomUUID();
+                PaymentIntentSucceededEvent event = new PaymentIntentSucceededEvent(
                         eventId,
                         paymentIntentId,
-                        merchantId,
-                        amountMinorUnits,
-                        currency,
-                        occurredAt,
+                        paymentIntent.getMerchant().getId(),
+                        paymentIntent.getAmountMinorUnits(),
+                        paymentIntent.getCurrency(),
+                        Instant.now(),
                         processorReference
                 );
-            }
-
-            case ProcessorResult.Declined(String reasonCode, String message) -> {
-                paymentIntent.setStatus(PaymentIntentStateMachine.transition(
-                        paymentIntent.getStatus(),
-                        PaymentIntentStatus.FAILED
-                ));
-                eventType = EventType.PAYMENT_INTENT_FAILED;
-                event = new PaymentIntentFailedEvent(
+                outboxEventService.recordEvent(
                         eventId,
+                        AggregateType.PAYMENT_INTENT,
                         paymentIntentId,
-                        merchantId,
-                        amountMinorUnits,
-                        currency,
-                        occurredAt,
-                        FailureReason.DECLINED,
-                        reasonCode
+                        EventType.PAYMENT_INTENT_SUCCEEDED,
+                        event
                 );
             }
-            case ProcessorResult.ProcessorError(String message) -> {
-                paymentIntent.setStatus(PaymentIntentStateMachine.transition(
-                        paymentIntent.getStatus(),
-                        PaymentIntentStatus.FAILED
-                ));
-                eventType = EventType.PAYMENT_INTENT_FAILED;
-                event = new PaymentIntentFailedEvent(
-                        eventId,
-                        paymentIntentId,
-                        merchantId,
-                        amountMinorUnits,
-                        currency,
-                        occurredAt,
-                        FailureReason.PROCESSOR_ERROR,
-                        message
-                );
-            }
+            case ProcessorResult.Declined d ->
+                    paymentIntentFailureRecorder.applyFailure(paymentIntent, FailureReason.DECLINED, d.reasonCode());
+            case ProcessorResult.ProcessorError e ->
+                    paymentIntentFailureRecorder.applyFailure(paymentIntent, FailureReason.PROCESSOR_ERROR, e.message());
         }
-        outboxEventService.recordEvent(
-                eventId,
-                AggregateType.PAYMENT_INTENT,
-                paymentIntentId,
-                eventType,
-                event
-        );
+
         paymentIntentRepository.save(paymentIntent);
     }
 }

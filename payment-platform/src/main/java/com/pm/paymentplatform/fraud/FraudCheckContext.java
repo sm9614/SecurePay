@@ -11,9 +11,6 @@ public record FraudCheckContext(
         long amountMinorUnits,
         Currency currency,
         Instant occurredAt,
-        String billingCountry,
-        String ipCountry,
-        boolean isFirstTimeCard,
 
         // Precomputed context (proto 9-15)
         int merchantTransactionCountToday,
