@@ -8,9 +8,11 @@ import java.util.List;
 import java.util.UUID;
 
 public interface WebhookEndpointRepository extends JpaRepository<WebhookEndpoint, UUID> {
-    List<WebhookEndpoint> findByMerchantIdAndIsActiveTrue(UUID merchantId);
 
     @Query(value = "SELECT * FROM webhook_endpoints " +
-            "WHERE is_active = true AND :eventType = ANY(subscribed_event_types)", nativeQuery = true)
-    List<WebhookEndpoint> findActiveByEventType(@Param("eventType") String eventType);
+            "WHERE merchant_id = :merchantId " +
+            "AND is_active = true " +
+            "AND :eventType = ANY(subscribed_event_types)", nativeQuery = true)
+    List<WebhookEndpoint> findActiveByMerchantIdAndEventType(@Param("merchantId") UUID merchantId,
+                                                             @Param("eventType") String eventType);
 }

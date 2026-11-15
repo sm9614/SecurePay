@@ -29,7 +29,7 @@ import java.util.function.Supplier;
 public class GrpcFraudCheckClient implements FraudCheckClient {
 
     private static final Logger log = LoggerFactory.getLogger(GrpcFraudCheckClient.class);
-    private static final long DEADLINE_MS = 100;
+    private static final long DEADLINE_MS = 250;
 
     private final ManagedChannel channel;
     private final FraudCheckServiceGrpc.FraudCheckServiceBlockingStub stub;
@@ -51,12 +51,12 @@ public class GrpcFraudCheckClient implements FraudCheckClient {
                     .forAddress(host, port)
                     .sslContext(sslContext)
                     .build();
+            channel.getState(true);
         } catch (SSLException e) {
             throw new IllegalStateException("Failed to load fraud service TLS certificate from " + certPath, e);
         }
 
         this.stub = FraudCheckServiceGrpc.newBlockingStub(channel);
-
         CircuitBreakerConfig config = CircuitBreakerConfig.custom()
                 .failureRateThreshold(50)
                 .waitDurationInOpenState(Duration.ofSeconds(30))
@@ -81,6 +81,9 @@ public class GrpcFraudCheckClient implements FraudCheckClient {
             return failOpen();
         } catch (StatusRuntimeException e) {
             log.error("Fraud check gRPC call failed for transaction {}: {}", context.transactionId(), e.getStatus(), e);
+            return failOpen();
+        } catch (RuntimeException e) {
+            log.error("Unexpected error in fraud check for transaction {}, failing open", context.transactionId(), e);
             return failOpen();
         }
     }

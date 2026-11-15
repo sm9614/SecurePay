@@ -33,7 +33,7 @@ services:
       - kafka_data:/var/lib/kafka/data
 
 
-  payment_platform:
+  payment-platform:
     build:
       context: ./payment-platform
     ports:
@@ -54,7 +54,7 @@ services:
     volumes:
       - ./certs:/app/certs:ro
 
-  fraud_service:
+  fraud-service:
     build:
       context: .
       dockerfile: fraud-service/Dockerfile
