@@ -5,14 +5,14 @@ import java.util.Currency;
 import java.util.UUID;
 
 public record FraudCheckContext(
-        // Core transaction fields (proto 1-8)
+        // Core transaction fields (proto 1-5)
         UUID transactionId,
         UUID merchantId,
         long amountMinorUnits,
         Currency currency,
         Instant occurredAt,
 
-        // Precomputed context (proto 9-15)
+        // Precomputed context (proto 6-12)
         int merchantTransactionCountToday,
         long merchantAverageAmountMinorUnits,
         int velocityCount5min,
