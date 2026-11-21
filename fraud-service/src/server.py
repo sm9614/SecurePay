@@ -5,8 +5,7 @@ from pathlib import Path
 
 import grpc
 
-import fraud_check_pb2
-import fraud_check_pb2_grpc
+from src.generated import fraud_check_pb2, fraud_check_pb2_grpc
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 PORT = int(os.getenv("FRAUD_SERVICE_PORT", "50051"))

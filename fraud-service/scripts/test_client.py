@@ -1,12 +1,11 @@
 import grpc
 
-import fraud_check_pb2
-import fraud_check_pb2_grpc
+from src.generated import fraud_check_pb2, fraud_check_pb2_grpc
 
 
 def main():
     # Trust the server's self-signed certificate
-    with open("../certs/server-cert.pem", "rb") as cert_file:
+    with open("../../certs/server-cert.pem", "rb") as cert_file:
         cert_bytes = cert_file.read()
 
     credentials = grpc.ssl_channel_credentials(
