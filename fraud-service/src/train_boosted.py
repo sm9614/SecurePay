@@ -6,10 +6,9 @@ from sklearn.metrics import average_precision_score, confusion_matrix, precision
 
 from src import split
 from src import features
-from src.evaluate import pick_threshold
+from src.evaluate import pick_threshold, TARGET_PRECISION
 
 MODEL_DIR = Path(__file__).resolve().parents[1]/ "models"
-TARGET_PRECISION = 0.70
 
 def train_boosted():
     x_train, x_val, _, y_train, y_val, _ = split.split_data(split.PATH)

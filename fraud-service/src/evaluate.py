@@ -1,6 +1,8 @@
 import numpy as np
 from sklearn.metrics import precision_recall_curve
 
+TARGET_PRECISION = 0.80
+
 def pick_threshold(y_true, y_prob, target_precision):
     precision, recall, thresholds = precision_recall_curve(y_true, y_prob)
     ok = precision[:-1] >= target_precision
