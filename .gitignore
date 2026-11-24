@@ -28,3 +28,6 @@ certs/server-key.pem
 certs/server-cert.pem
 /fraud-service/.venv/
 /fraud-service/__pycache__
+/fraud-service/src/__pycache__
+*.joblib
+*.csv
